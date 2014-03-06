@@ -55,6 +55,8 @@ void CCW_90(){
   Mx.MotorTarget(Mx_M1, M1_val, 15);
   Mx.MotorTarget(Mx_M2, M2_val, 15);
   delay(3500);
+  Mx.SetMode(Mx_M1, RESET);
+  Mx.SetMode(Mx_M2, RESET);
 }
 void CW_90(){  
   Mx.SetMode(Mx_M1, SLEW);
@@ -66,7 +68,9 @@ void CW_90(){
   M2_val = M2_cur - 415;
   Mx.MotorTarget(Mx_M1, M1_val, 15);
   Mx.MotorTarget(Mx_M2, M2_val, 15);
-  delay(1000);
+  delay(3500);
+  Mx.SetMode(Mx_M1, RESET);
+  Mx.SetMode(Mx_M2, RESET);
 }
 void CCW_180(){  
   Mx.SetMode(Mx_M1, SLEW);
@@ -78,20 +82,23 @@ void CCW_180(){
   M2_val = M2_cur + 825;
   Mx.MotorTarget(Mx_M1, M1_val, 15);
   Mx.MotorTarget(Mx_M2, M2_val, 15);
-  delay(1000);
+  delay(3500);
+  Mx.SetMode(Mx_M1, RESET);
+  Mx.SetMode(Mx_M2, RESET);
 }
 void start_motors(int power){
   Mx.SetMode(Mx_M1, FLOAT);
   Mx.SetMode(Mx_M2, FLOAT+INV);
   main_power = power;
   Mx.SetMotors(Mx_M1+Mx_M2, 50);
-  delay(1000);
 }
 void stop_motors(){
   Mx.SetMode(Mx_M1, FLOAT);
-  Mx.SetMode(Mx_M2, FLOAT+INV);
+  Mx.SetMode(Mx_M2, FLOAT);
   Mx.SetMotors(Mx_M1+Mx_M2, 0);
   delay(1000);
+  Mx.SetMode(Mx_M1, RESET);
+  Mx.SetMode(Mx_M2, RESET);
 }
 void inc_power(char motor){
   Mx.SetMotors(motor, main_power+5);
