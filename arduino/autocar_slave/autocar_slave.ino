@@ -20,7 +20,15 @@ void loop(){
   start_motors(50);
   delay(5000);
   stop_motors();
-  delay(3000);
+  delay(5000);
+  CW_90();
+  delay(5000);
+  start_motors(50);
+  delay(5000);
+  stop_motors();
+  delay(5000);
+  CCW_180();
+  delay(5000);
 }
 
 void CCW_90(){  
@@ -34,6 +42,8 @@ void CCW_90(){
   Mx.MotorTarget(Mx_M1, M1_val, 15);
   Mx.MotorTarget(Mx_M2, M2_val, 15);
   delay(1000);
+  Mx.SetMode(Mx_M1, RESET);
+  Mx.SetMode(Mx_M2, RESET);
 }
 void CW_90(){  
   M1_cur = Mx.MotorPosition(Mx_M1);
@@ -56,8 +66,6 @@ void CCW_180(){
   delay(1000);
 }
 void start_motors(int power){
-  Mx.SetMode(Mx_M1, SPEED);
-  Mx.SetMode(Mx_M2, SPEED+INV); 
   main_power = power;
   Mx.SetMotors(Mx_M1+Mx_M2, 50);
   delay(1000);
