@@ -6,8 +6,6 @@ int main_power;
 
 void setup(){
   Serial.begin(9600);
-  //Mx.SetMode(Mx_M1, SLEW);
-  //Mx.SetMode(Mx_M2, SLEW);
 }
 
 ISR(TIMER1_COMPA_vect){
@@ -101,10 +99,14 @@ void stop_motors(){
   Mx.SetMode(Mx_M2, RESET);
 }
 void inc_power(char motor){
+  Mx.SetMode(Mx_M1, FLOAT);
+  Mx.SetMode(Mx_M2, FLOAT+INV);
   Mx.SetMotors(motor, main_power+5);
   delay(1000);
 }
 void dec_power(char motor){
+  Mx.SetMode(Mx_M1, FLOAT);
+  Mx.SetMode(Mx_M2, FLOAT+INV);
   Mx.SetMotors(motor, main_power-5);
   delay(1000);
 }
