@@ -70,32 +70,17 @@ def body( args ):
 	i = 0
 	try:
 		while flag:
-			findShapes( frame )
-
-			# gray = cv2.cvtColor(frame, cv.CV_RGB2GRAY)
-			# ret, thresh = cv2.threshold( gray, 127, 255, 1 )
-			# contours, h = cv2.findContours( thresh, 1, 2 )
-			# 
-			# for cnt in contours:
-			# 	approx = cv2.approxPolyDP( cnt, 0.01*cv2.arcLength(cnt,True), True )
-			# 	#print len(approx)
-			# 	if len(approx) == 3:
-			# 		#print "triangle"
-			# 		cv2.drawContours( frame, [cnt], 0, (0,255,0), -1 )
-			# 	elif len(approx) == 4:
-			# 		#print "square"
-			# 		cv2.drawContours( frame, [cnt], 0, (0,0,255), -1 )
-			# 	elif len(approx) == 8:
-			# 		#print "octogon"
-			# 		cv2.drawContours( frame, [cnt], 0, (255,255,0), -1 )
-			
-			i += 1
+			if not args.noprocess:	
+				findShapes( frame )
 			if args.show:
 				cv2.imshow("preview", frame)
 				flag, frame = capture.read()
 				key = cv2.waitKey(5)
 			if args.outfile:
 				writer.write( frame )
+			i += 1
+			flag, frame = capture.read()
+
 	except KeyboardInterrupt:
 		pass
 	
@@ -112,6 +97,7 @@ if __name__ == "__main__":
 	parser.add_argument( "-o", "--outfile", help="output processed to a file" )
 	parser.add_argument( "--fourcc", help="four character code to specify video output type", default="XVID" )
 	parser.add_argument( "-s", "--show", help="show the output on screen", action="store_true" )
+	parser.add_argument( "-n", "--noprocess", help="disable image processing", action="store_true" )
 	args = parser.parse_args()
 		
 	body( args )

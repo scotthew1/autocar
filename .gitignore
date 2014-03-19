@@ -1,2 +1,4 @@
 *.avi
 *.swp
+.DS_Store
+sample_video/
