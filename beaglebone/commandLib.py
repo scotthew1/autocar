@@ -17,7 +17,7 @@ def Stop ():
 def Start (speed): # Starts the car, if speed is too high or negative exception is raised.
 
 	if speed < 0 or speed > 100:
-	raise ValueError
+		raise ValueError
 	command = 'b' + str(speed)
 	Serial1.write(command)
 
@@ -39,20 +39,20 @@ def turnAround ():
 def increasePower (motor, speed):   # Increases power to a motor of choice, if the speed is too high or low
 									# an exception is raised.
 	if speed < 0 or speed > 9:
-	raise ValueError
-	command = 'f' + "01".decode("hex") + str(speed)
+		raise ValueError
+	command = 'f' + motor.decode("hex") + str(speed)
 	Serial1.write(command)
 
 def decreasePower (motor, speed):  # Decreases power to a motor of choice, if the speed is too high or low
 								   # an exception is raised.
 	if speed < 0 or speed > 9:
-	raise ValueError
-	command = 'g' + "01".decode("hex") + str(speed)
+		raise ValueError
+	command = 'g' + motor.decode("hex") + str(speed)
 	Serial1.write(command)
 
 def Reverse (speed):  # Reverses the car, if the speed is too high or negative, an exception is raised.
 
 	if speed < 0 or speed > 100:
-	raise ValueError
+		raise ValueError
 	command = 'h' + str(speed)
 	Serial1.write(command)
