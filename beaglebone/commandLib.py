@@ -1,39 +1,58 @@
-#!/usr/bin/python
-import sys
-import time 
+# commandLib.py is meant to prepare a string of bits that will
+# be interpreted by the Arduino so that the robot can perform
+# the commands sent by the BeagleBone.
+
+from bbio import *  #for when the beaglebone is hooked up
+
+#Set Serial1 to a 9600 baud rate
+def setup():
+
+ 	Serial1.begin(9600)
 
 def Stop ():
 
-	choice = "0000"
-	return choice
+	command = 'a' + "000"
+	Serial1.write(command)
 
-def Start (speed):
+def Start (speed): # Starts the car, if speed is too high or negative exception is raised.
 
-	choice = "0001"
-	choice = choice + speed
-	return choice
+	if speed < 0 or speed > 100:
+	raise ValueError
+	command = 'b' + str(speed)
+	Serial1.write(command)
 
 def leftTurn ():
 
-	choice = "0010"
-	return choice
+	command = 'c' + "000"
+	Serial1.write(command)
 
 def rightTurn ():
 
-	choice = "0011"
-	return choice
+	command = 'd' + "000"
+	Serial1.write(command)
 
 def turnAround ():
 
-	choice = "0100"
-	return choice
+	command = 'e' + "000"
+	Serial1.write(command)
 
-def increasePower (speed):
+def increasePower (motor, speed):   # Increases power to a motor of choice, if the speed is too high or low
+									# an exception is raised.
+	if speed < 0 or speed > 9:
+	raise ValueError
+	command = 'f' + "01".decode("hex") + str(speed)
+	Serial1.write(command)
 
-	choice = "0101"
-	return choice
+def decreasePower (motor, speed):  # Decreases power to a motor of choice, if the speed is too high or low
+								   # an exception is raised.
+	if speed < 0 or speed > 9:
+	raise ValueError
+	command = 'g' + "01".decode("hex") + str(speed)
+	Serial1.write(command)
 
-def decreasePower (speed):
+def Reverse (speed):  # Reverses the car, if the speed is too high or negative, an exception is raised.
 
-	choice = "0110"
-	return choice
+	if speed < 0 or speed > 100:
+	raise ValueError
+	command = 'h' + str(speed)
+	Serial1.write(command)
