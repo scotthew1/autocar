@@ -11,14 +11,14 @@ def setup():
 	"""
  	Serial1.begin(9600)
 
-def Stop():
+def stop():
 	"""
 	Stop the car
 	"""
 	command = 'a' + "000"
 	Serial1.write(command)
 
-def Start( speed ): 
+def start( speed ): 
 	"""
 	Starts the car
 	if speed is too high or negative, a ValueError exception is raised.
@@ -78,7 +78,7 @@ def decreasePower( motor, speed ):
 	command = 'g' + motor.decode("hex") + str(speed) + '0'
 	Serial1.write(command)
 
-def Reverse( speed ):  
+def reverse( speed ):  
 	"""
 	Reverses the car
 	if speed is too high or negative, a ValueError exception is raised.
