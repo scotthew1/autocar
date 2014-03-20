@@ -105,12 +105,6 @@ void start_motors(int power){
   main_power = power;  // Store power to manipulate in other functions
   Mx.SetMotors(Mx_M1+Mx_M2, power);  // Drive at set power value
 }
-// Start Reverse
-void reverse(int power){
-  Mx.SetMode(Mx_M1, FLOAT+INV);  // Set M1 to Float and Inverse motor direction
-  Mx.SetMode(Mx_M2, FLOAT);  // Set M2 to Float
-  Mx.SetMotors(Mx_M1+Mx_M2, power);  // Reverse at set power value
-}
 // Stop Motors
 void stop_motors(){
   Mx.SetMode(Mx_M1, FLOAT);  // Set M1 to Float
@@ -134,6 +128,12 @@ void dec_power(char motor, int decrement){
   Mx.SetMotors(motor, main_power-decrement); // Decrement current power by set value
   delay(500);
 }
+// Start Reverse
+void reverse(int power){
+  Mx.SetMode(Mx_M1, FLOAT+INV);  // Set M1 to Float and Inverse motor direction
+  Mx.SetMode(Mx_M2, FLOAT);  // Set M2 to Float
+  Mx.SetMotors(Mx_M1+Mx_M2, power);  // Reverse at set power value
+}
 // EOPD Object Detection
 void EOPDsensor(){
   //Convert raw value of(24-724) to milimeters
@@ -151,6 +151,7 @@ int readBeagle() {
   unsigned char* _byteData = (unsigned char*)malloc( sizeof( unsigned char ) * 4); //temp variable for first 4 bits
   unsigned char inChar;
   unsigned char* _speedData = (unsigned char*)malloc( sizeof( unsigned char ) * 3);
+  int byte_power, byte_motor;
   byte index = 0; // Index into array; where to store the character#
   char* outData = (char*)malloc( sizeof(char) * 4);
   delay(1000);
@@ -170,48 +171,69 @@ int readBeagle() {
 //        break;
       case 'a':
       // STOP
+      stop_motors();
       #ifdef DEBUG
         Serial.write("a");
       #endif
         break;
+      
       case 'b':
       // START
+      byte_power = ((_byteData[1]-'0')*10)+(_byteData[2]-'0');
+      start_motors(byte_power);
       #ifdef DEBUG
         Serial.write("b");
       #endif
         break;
+      
       case 'c':
       // TURN LEFT
+      CCW_90();
       #ifdef DEBUG
         Serial.write("c");
       #endif
         break;
+      
       case 'd':
       // TURN RIGHT
+      CW_90();
       #ifdef DEBUG
         Serial.write("d");
       #endif
         break;
+     
       case 'e':
       // TURN AROUND
+      CCW_180();
       #ifdef DEBUG
         Serial.write("e");
       #endif
         break;  
+     
       case 'f':
       // Increase Power
+      byte_power = (_byteData[2]-'0');
+      byte_motor = (_byteData[1]-'0');
+      inc_power(byte_motor,byte_power);
       #ifdef DEBUG
         Serial.write("f");
       #endif
         break;
+     
       case 'g':
       // Decrease Power
+      byte_power = (_byteData[2]-'0');
+      byte_motor = (_byteData[1]-'0');
+      dec_power(byte_motor,byte_power);
       #ifdef DEBUG
         Serial.write("g");
       #endif
         break;
+      
       case 'h':
       // REVERSE
+      byte_power = ((_byteData[1]-'0')*10)+(_byteData[2]-'0');
+      reverse(byte_power);
       #ifdef DEBUG
         Serial.write("h");
       #endif
