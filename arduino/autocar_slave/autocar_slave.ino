@@ -1,10 +1,15 @@
 #include <MatrixController.h>
 #include <Wire.h>
+#include <string.h>
+
+#define DEBUG
 
 long M1_cur, M2_cur, M1_val, M2_val;  // Motor encoder values
 int main_power;  // Driving power; Stored for directional correction
 int sensorValue = analogRead(A0);  // Raw value read from EOPD
 int calcValue = 0;  // Distance value in milimeters
+String inData;  // Allocate some space for string
+String first4Bits;  // The first 4 recieved bits
 
 void setup(){
   Serial.begin(9600);
@@ -15,6 +20,10 @@ ISR(TIMER1_COMPA_vect){
 }
 
 void loop(){
+  /*delay(500);
+  if(Serial.available()){
+    readBeagle();
+  }*/
   // This is TEST code!
   Serial.println("CCW_90 : Making Left Turn");
   CCW_90();
@@ -107,7 +116,7 @@ void stop_motors(){
   Mx.SetMode(Mx_M1, FLOAT);  // Set M1 to Float
   Mx.SetMode(Mx_M2, FLOAT);  // Set M2 to Float
   Mx.SetMotors(Mx_M1+Mx_M2, 0);  // Set Motor Power to 0
-  delay(1000);
+  delay(500);
   Mx.SetMode(Mx_M1, RESET);  // Reset M1
   Mx.SetMode(Mx_M2, RESET);  // Reset M2
 }
@@ -116,17 +125,17 @@ void inc_power(char motor, int increment){
   Mx.SetMode(Mx_M1, FLOAT);  // Set M1 to Float
   Mx.SetMode(Mx_M2, FLOAT+INV);  // Set M2 to Float and Inverse motor direction
   Mx.SetMotors(motor, main_power+increment); // Increment current power by set value
-  delay(1000);
+  delay(500);
 }
 // Decrement Power to single motor
 void dec_power(char motor, int decrement){
   Mx.SetMode(Mx_M1, FLOAT);  // Set M1 to Float
   Mx.SetMode(Mx_M2, FLOAT+INV);  // Set M2 to Float and Inverse motor direction
   Mx.SetMotors(motor, main_power-decrement); // Decrement current power by set value
-  delay(1000);
+  delay(500);
 }
 // EOPD Object Detection
-void EOPDsensor();{
+void EOPDsensor(){
   //Convert raw value of(24-724) to milimeters
   if(sensorValue > 200){
     calcValue = ((524.88/sqrt(sensorValue))-15.29);
@@ -137,4 +146,85 @@ void EOPDsensor();{
   //Figure out threshold for distance checking.
   //What distance will trigger EOPD?
   //EOPD run multiple check to confirm object?
+}
+int readBeagle() {
+  unsigned char* _byteData = (unsigned char*)malloc( sizeof( unsigned char ) * 4); //temp variable for first 4 bits
+  unsigned char inChar;
+  unsigned char* _speedData = (unsigned char*)malloc( sizeof( unsigned char ) * 3);
+  byte index = 0; // Index into array; where to store the character#
+  char* outData = (char*)malloc( sizeof(char) * 4);
+  delay(1000);
+    if (Serial.available() > 0) // Don't read unless there you know there is data
+    {
+      if ( index < 4 ) {
+        inChar = Serial.read(); // Read a character
+        _byteData[index] = inChar;
+        if (index > 0)
+          _speedData[index] = inChar;
+        index++;
+      }
+    }
+    switch( _byteData[0] ) {
+//      case 0x01:
+//        Serial.write("zac");
+//        break;
+      case 'a':
+      // STOP
+      #ifdef DEBUG
+        Serial.write("a");
+      #endif
+        break;
+      case 'b':
+      // START
+      #ifdef DEBUG
+        Serial.write("b");
+      #endif
+        break;
+      case 'c':
+      // TURN LEFT
+      #ifdef DEBUG
+        Serial.write("c");
+      #endif
+        break;
+      case 'd':
+      // TURN RIGHT
+      #ifdef DEBUG
+        Serial.write("d");
+      #endif
+        break;
+      case 'e':
+      // TURN AROUND
+      #ifdef DEBUG
+        Serial.write("e");
+      #endif
+        break;  
+      case 'f':
+      // Increase Power
+      #ifdef DEBUG
+        Serial.write("f");
+      #endif
+        break;
+      case 'g':
+      // Decrease Power
+      #ifdef DEBUG
+        Serial.write("g");
+      #endif
+        break;
+      case 'h':
+      // REVERSE
+      #ifdef DEBUG
+        Serial.write("h");
+      #endif
+        break;
+        
+     default:
+        sprintf( outData, "%x", _byteData[0] );
+        Serial.write( outData );
+        break;
+    }
+    
+    free( _byteData );
+    free( _speedData );
+    free( outData );
+    delay(5000);
 }
