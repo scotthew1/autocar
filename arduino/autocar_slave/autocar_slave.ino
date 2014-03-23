@@ -161,70 +161,70 @@ int readBeagle() {
       inInt = Serial.read();
       // delay( 5 )
     }
-  }
-  switch( _byteData[0] ) {
-    case 'a':
-    // STOP
-    stop_motors();
-    Serial.write( "acka" );
-    break;
-    
-    case 'b':
-    // START
-    int_power = (int)((_byteData[1]-'0')*10)+(_byteData[2]-'0');
-    start_motors( int_power );
-    Serial.write( "ackb" );
-    break;
-    
-    case 'c':
-    // TURN LEFT
-    CCW_90();
-    Serial.write( "ackc" );
-    break;
-    
-    case 'd':
-    // TURN RIGHT
-    CW_90();
-    Serial.write( "ackd" );
-    break;
-   
-    case 'e':
-    // TURN AROUND
-    CCW_180();
-    Serial.write( "acke" );
-    break;  
-   
-    case 'f':
-    // Increase Power
-    byte_motor = ( _byteData[1] );
-    int_power = ( _byteData[2] - '0' );
-    inc_power( byte_motor, int_power );
-    Serial.write( "ackf" );
-    break;
-   
-    case 'g':
-    // Decrease Power
-    byte_motor = ( _byteData[1] );
-    int_power = (int)( _byteData[2] - '0' );
-    dec_power( byte_motor, int_power );
-    Serial.write( "ackg" );
-    break;
-    
-    case 'h':
-    // REVERSE
-    int_power = (int)((_byteData[1]-'0')*10)+(_byteData[2]-'0');
-    reverse( int_power );
-    Serial.write( "ackh" );
-    break;
-
-    case 't':
-    // TEST
-    Serial.write( "ackt" );
-    break;
+    switch( _byteData[0] ) {
+      case 'a':
+      // STOP
+      stop_motors();
+      Serial.write( "acka" );
+      break;
       
-   default:
-    // Serial.write( "err" );
-    break;
+      case 'b':
+      // START
+      int_power = (int)((_byteData[1]-'0')*10)+(_byteData[2]-'0');
+      start_motors( int_power );
+      Serial.write( "ackb" );
+      break;
+      
+      case 'c':
+      // TURN LEFT
+      CCW_90();
+      Serial.write( "ackc" );
+      break;
+      
+      case 'd':
+      // TURN RIGHT
+      CW_90();
+      Serial.write( "ackd" );
+      break;
+     
+      case 'e':
+      // TURN AROUND
+      CCW_180();
+      Serial.write( "acke" );
+      break;  
+     
+      case 'f':
+      // Increase Power
+      byte_motor = ( _byteData[1] );
+      int_power = ( _byteData[2] - '0' );
+      inc_power( byte_motor, int_power );
+      Serial.write( "ackf" );
+      break;
+     
+      case 'g':
+      // Decrease Power
+      byte_motor = ( _byteData[1] );
+      int_power = (int)( _byteData[2] - '0' );
+      dec_power( byte_motor, int_power );
+      Serial.write( "ackg" );
+      break;
+      
+      case 'h':
+      // REVERSE
+      int_power = (int)((_byteData[1]-'0')*10)+(_byteData[2]-'0');
+      reverse( int_power );
+      Serial.write( "ackh" );
+      break;
+
+      case 't':
+      // TEST
+      Serial.write( "ackt" );
+      break;
+        
+     default:
+      // Serial.write( "err" );
+      break;
+    }
+    // delay( 200 );
   }
-  // delay( 200 );
 }
