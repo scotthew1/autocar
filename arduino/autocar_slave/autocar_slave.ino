@@ -159,6 +159,7 @@ int readBeagle() {
       _byteData[index] = (unsigned char)inInt;
       index++;
       inInt = Serial.read();
+      delay( 5 )
     }
   }
   for ( cmd_index = 0; cmd_index < index; cmd_index += 4 ) {
@@ -225,6 +226,7 @@ int readBeagle() {
      default:
       // Serial.write( "err" );
       break;
-    }  
+    }
+    delay( 200 )
   }
 }
