@@ -20,38 +20,36 @@ ISR(TIMER1_COMPA_vect){
 }
 
 void loop(){
-  /*delay(500);
-  if(Serial.available()){
-    readBeagle();
-  }*/
+  readBeagle();
+
   // This is TEST code!
-  Serial.println("CCW_90 : Making Left Turn");
-  CCW_90();
-  delay(5000);
-  Serial.println("start_motors");
-  start_motors(50);
-  delay(5000);
-  Serial.println("stop_motors");
-  stop_motors();
-  delay(5000);
-  Serial.println("CW_90 : Making Right Turn");
-  CW_90();
-  delay(5000);
-  Serial.println("start_motors");
-  start_motors(50);
-  delay(5000);
-  Serial.println("stop_motors");
-  stop_motors();
-  delay(5000);
-  Serial.println("CCW_180 : Turn Around");
-  CCW_180();
-  delay(5000);
-  Serial.println("start_motors");
-  start_motors(50);
-  delay(5000);
-  Serial.println("stop_motors");
-  stop_motors();
-  delay(5000);
+  // Serial.println("CCW_90 : Making Left Turn");
+  // CCW_90();
+  // delay(5000);
+  // Serial.println("start_motors");
+  // start_motors(50);
+  // delay(5000);
+  // Serial.println("stop_motors");
+  // stop_motors();
+  // delay(5000);
+  // Serial.println("CW_90 : Making Right Turn");
+  // CW_90();
+  // delay(5000);
+  // Serial.println("start_motors");
+  // start_motors(50);
+  // delay(5000);
+  // Serial.println("stop_motors");
+  // stop_motors();
+  // delay(5000);
+  // Serial.println("CCW_180 : Turn Around");
+  // CCW_180();
+  // delay(5000);
+  // Serial.println("start_motors");
+  // start_motors(50);
+  // delay(5000);
+  // Serial.println("stop_motors");
+  // stop_motors();
+  // delay(5000);
 }
 // Left Turn
 void CCW_90(){  
@@ -149,78 +147,84 @@ void EOPDsensor(){
 }
 
 int readBeagle() {
-  unsigned char* _byteData[4]; //temp variable for first 4 bits
+  int array_max = 32;
+  unsigned char _byteData[array_max]; //temp variable for first 4 bits
   unsigned char inChar, byte_motor;
-  int int_power;
+  int inInt, int_power, cmd_index;
   byte index = 0; // Index into array; where to store the character#
-  delay(1000);
   if (Serial.available() > 0) {
-  // Don't read unless there you know there is data
-    if ( index < 4 ) {
-      inChar = Serial.read(); // Read a character
-      _byteData[index] = inChar;
+    // Don't read unless there you know there is data
+    inInt = Serial.read()
+    while ( inInt != -1 && index < array_max ) {
+      _byteData[index] = (unsigned char)inInt;
       index++;
+      inInt = Serial.read();
     }
   }
-  switch( _byteData[0] ) {
-    case 'a':
-    // STOP
-    stop_motors();
-    Serial.write( "ack" );
-    break;
-    
-    case 'b':
-    // START
-    int_power = (int)((_byteData[1]-'0')*10)+(_byteData[2]-'0');
-    start_motors( int_power );
-    Serial.write( "ack" );
-    break;
-    
-    case 'c':
-    // TURN LEFT
-    CCW_90();
-    Serial.write( "ack" );
-    break;
-    
-    case 'd':
-    // TURN RIGHT
-    CW_90();
-    Serial.write( "ack" );
-    break;
-   
-    case 'e':
-    // TURN AROUND
-    CCW_180();
-    Serial.write( "ack" );
-    break;  
-   
-    case 'f':
-    // Increase Power
-    byte_motor = ( _byteData[1] );
-    int_power = ( _byteData[2] - '0' );
-    inc_power( byte_motor, int_power );
-    Serial.write( "ack" );
-    break;
-   
-    case 'g':
-    // Decrease Power
-    byte_motor = ( _byteData[1] );
-    int_power = (int)( _byteData[2] - '0' );
-    dec_power( byte_motor, int_power );
-    Serial.write( "ack" );
-    break;
-    
-    case 'h':
-    // REVERSE
-    byte_power = ((_byteData[1]-'0')*10)+(_byteData[2]-'0');
-    reverse( byte_power );
-    Serial.write( "ack" );
-    break;
+  for ( cmd_index = 0; cmd_index < index; cmd_index += 4 ) {
+    switch( _byteData[cmd_index] ) {
+      case 'a':
+      // STOP
+      stop_motors();
+      Serial.write( "acka" );
+      break;
       
-   default:
-    Serial.write( "err" );
-    break;
+      case 'b':
+      // START
+      int_power = (int)((_byteData[1]-'0')*10)+(_byteData[2]-'0');
+      start_motors( int_power );
+      Serial.write( "ackb" );
+      break;
+      
+      case 'c':
+      // TURN LEFT
+      CCW_90();
+      Serial.write( "ackc" );
+      break;
+      
+      case 'd':
+      // TURN RIGHT
+      CW_90();
+      Serial.write( "ackd" );
+      break;
+     
+      case 'e':
+      // TURN AROUND
+      CCW_180();
+      Serial.write( "acke" );
+      break;  
+     
+      case 'f':
+      // Increase Power
+      byte_motor = ( _byteData[1] );
+      int_power = ( _byteData[2] - '0' );
+      inc_power( byte_motor, int_power );
+      Serial.write( "ackf" );
+      break;
+     
+      case 'g':
+      // Decrease Power
+      byte_motor = ( _byteData[1] );
+      int_power = (int)( _byteData[2] - '0' );
+      dec_power( byte_motor, int_power );
+      Serial.write( "ackg" );
+      break;
+      
+      case 'h':
+      // REVERSE
+      int_power = (int)((_byteData[1]-'0')*10)+(_byteData[2]-'0');
+      reverse( int_power );
+      Serial.write( "ackh" );
+      break;
+
+      case 't':
+      // TEST
+      Serial.write( "ackt" );
+      break;
+        
+     default:
+      // Serial.write( "err" );
+      break;
+    }  
   }
-  
-  delay(5000);
 }
