@@ -20,38 +20,36 @@ ISR(TIMER1_COMPA_vect){
 }
 
 void loop(){
-  /*delay(500);
-  if(Serial.available()){
-    readBeagle();
-  }*/
+  readBeagle();
+
   // This is TEST code!
-  Serial.println("CCW_90 : Making Left Turn");
-  CCW_90();
-  delay(5000);
-  Serial.println("start_motors");
-  start_motors(50);
-  delay(5000);
-  Serial.println("stop_motors");
-  stop_motors();
-  delay(5000);
-  Serial.println("CW_90 : Making Right Turn");
-  CW_90();
-  delay(5000);
-  Serial.println("start_motors");
-  start_motors(50);
-  delay(5000);
-  Serial.println("stop_motors");
-  stop_motors();
-  delay(5000);
-  Serial.println("CCW_180 : Turn Around");
-  CCW_180();
-  delay(5000);
-  Serial.println("start_motors");
-  start_motors(50);
-  delay(5000);
-  Serial.println("stop_motors");
-  stop_motors();
-  delay(5000);
+  // Serial.println("CCW_90 : Making Left Turn");
+  // CCW_90();
+  // delay(5000);
+  // Serial.println("start_motors");
+  // start_motors(50);
+  // delay(5000);
+  // Serial.println("stop_motors");
+  // stop_motors();
+  // delay(5000);
+  // Serial.println("CW_90 : Making Right Turn");
+  // CW_90();
+  // delay(5000);
+  // Serial.println("start_motors");
+  // start_motors(50);
+  // delay(5000);
+  // Serial.println("stop_motors");
+  // stop_motors();
+  // delay(5000);
+  // Serial.println("CCW_180 : Turn Around");
+  // CCW_180();
+  // delay(5000);
+  // Serial.println("start_motors");
+  // start_motors(50);
+  // delay(5000);
+  // Serial.println("stop_motors");
+  // stop_motors();
+  // delay(5000);
 }
 // Left Turn
 void CCW_90(){  
@@ -115,14 +113,14 @@ void stop_motors(){
   Mx.SetMode(Mx_M2, RESET);  // Reset M2
 }
 // Increment Power to single motor
-void inc_power(char motor, int increment){
+void inc_power(unsigned char motor, int increment){
   Mx.SetMode(Mx_M1, FLOAT);  // Set M1 to Float
   Mx.SetMode(Mx_M2, FLOAT+INV);  // Set M2 to Float and Inverse motor direction
   Mx.SetMotors(motor, main_power+increment); // Increment current power by set value
   delay(500);
 }
 // Decrement Power to single motor
-void dec_power(char motor, int decrement){
+void dec_power(unsigned char motor, int decrement){
   Mx.SetMode(Mx_M1, FLOAT);  // Set M1 to Float
   Mx.SetMode(Mx_M2, FLOAT+INV);  // Set M2 to Float and Inverse motor direction
   Mx.SetMotors(motor, main_power-decrement); // Decrement current power by set value
@@ -147,106 +145,86 @@ void EOPDsensor(){
   //What distance will trigger EOPD?
   //EOPD run multiple check to confirm object?
 }
+
 int readBeagle() {
-  unsigned char* _byteData = (unsigned char*)malloc( sizeof( unsigned char ) * 4); //temp variable for first 4 bits
-  unsigned char inChar;
-  unsigned char* _speedData = (unsigned char*)malloc( sizeof( unsigned char ) * 3);
-  int byte_power, byte_motor;
+  int array_max = 4;
+  unsigned char _byteData[array_max]; //temp variable for first 4 bits
+  unsigned char inChar, byte_motor;
+  int inInt, int_power;
   byte index = 0; // Index into array; where to store the character#
-  char* outData = (char*)malloc( sizeof(char) * 4);
-  delay(1000);
-    if (Serial.available() > 0) // Don't read unless there you know there is data
-    {
-      if ( index < 4 ) {
-        inChar = Serial.read(); // Read a character
-        _byteData[index] = inChar;
-        if (index > 0)
-          _speedData[index] = inChar;
-        index++;
-      }
+  if (Serial.available() > 0) {
+    // Don't read unless there you know there is data
+    inInt = Serial.read();
+    while ( inInt != -1 && index < array_max ) {
+      _byteData[index] = (unsigned char)inInt;
+      index++;
+      inInt = Serial.read();
+      // delay( 5 )
     }
     switch( _byteData[0] ) {
-//      case 0x01:
-//        Serial.write("zac");
-//        break;
       case 'a':
       // STOP
       stop_motors();
-      #ifdef DEBUG
-        Serial.write("a");
-      #endif
-        break;
+      Serial.write( "acka" );
+      break;
       
       case 'b':
       // START
-      byte_power = ((_byteData[1]-'0')*10)+(_byteData[2]-'0');
-      start_motors(byte_power);
-      #ifdef DEBUG
-        Serial.write("b");
-      #endif
-        break;
+      int_power = (int)((_byteData[1]-'0')*10)+(_byteData[2]-'0');
+      start_motors( int_power );
+      Serial.write( "ackb" );
+      break;
       
       case 'c':
       // TURN LEFT
       CCW_90();
-      #ifdef DEBUG
-        Serial.write("c");
-      #endif
-        break;
+      Serial.write( "ackc" );
+      break;
       
       case 'd':
       // TURN RIGHT
       CW_90();
-      #ifdef DEBUG
-        Serial.write("d");
-      #endif
-        break;
+      Serial.write( "ackd" );
+      break;
      
       case 'e':
       // TURN AROUND
       CCW_180();
-      #ifdef DEBUG
-        Serial.write("e");
-      #endif
-        break;  
+      Serial.write( "acke" );
+      break;  
      
       case 'f':
       // Increase Power
-      byte_power = (_byteData[2]-'0');
-      byte_motor = (_byteData[1]-'0');
-      inc_power(byte_motor,byte_power);
-      #ifdef DEBUG
-        Serial.write("f");
-      #endif
-        break;
+      byte_motor = ( _byteData[1] );
+      int_power = ( _byteData[2] - '0' );
+      inc_power( byte_motor, int_power );
+      Serial.write( "ackf" );
+      break;
      
       case 'g':
       // Decrease Power
-      byte_power = (_byteData[2]-'0');
-      byte_motor = (_byteData[1]-'0');
-      dec_power(byte_motor,byte_power);
-      #ifdef DEBUG
-        Serial.write("g");
-      #endif
-        break;
+      byte_motor = ( _byteData[1] );
+      int_power = (int)( _byteData[2] - '0' );
+      dec_power( byte_motor, int_power );
+      Serial.write( "ackg" );
+      break;
       
       case 'h':
       // REVERSE
-      byte_power = ((_byteData[1]-'0')*10)+(_byteData[2]-'0');
-      reverse(byte_power);
-      #ifdef DEBUG
-        Serial.write("h");
-      #endif
-        break;
+      int_power = (int)((_byteData[1]-'0')*10)+(_byteData[2]-'0');
+      reverse( int_power );
+      Serial.write( "ackh" );
+      break;
+
+      case 't':
+      // TEST
+      Serial.write( "ackt" );
+      break;
         
      default:
-        sprintf( outData, "%x", _byteData[0] );
-        Serial.write( outData );
-        break;
+      // Serial.write( "err" );
+      break;
     }
-    
-    free( _byteData );
-    free( _speedData );
-    free( outData );
-    delay(5000);
+    // delay( 200 );
+  }
 }

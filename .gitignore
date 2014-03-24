@@ -1,4 +1,5 @@
 *.avi
 *.swp
+*.pyc
 .DS_Store
 sample_video/
