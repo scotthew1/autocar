@@ -158,7 +158,7 @@ int readBeagle() {
     while ( inByte != -1 && index < array_max ) {
       _byteData[index] = (unsigned char)inByte;
       index++;
-      delay( 1 );
+      delay( 5 );
       inByte = Serial.read();
     }
     switch( _byteData[0] ) {
@@ -225,6 +225,5 @@ int readBeagle() {
       // Serial.write( "err" );
       break;
     }
-    // delay( 200 );
   }
 }

@@ -5,34 +5,36 @@ int loopCount = 0;
 
 void setup() {
   Serial.begin(9600);
-  Serial1.begin(9600);
-}`
+}
 
 void loop() {
   int inByte, i;
-  int byteArray[4];
+  char byteArray[4];
   
-  if ( Serial1.available() > 0 ) {
-    Serial.print( "loop " );
-    Serial.print( loopCount++ );
-    Serial.println( ':' );
+  if ( Serial.available() > 0 ) {
     i = 0;
-    inByte = Serial1.read();
+    inByte = Serial.read();
     while ( inByte != -1 && i < 4 ) {
-      delay(1);
-      byteArray[i] = inByte;
-      inByte = Serial1.read();
+      delay(5);
+      byteArray[i] = (char)inByte;
+      inByte = Serial.read();
       i++;
     }
-    Serial1.flush();
-    Serial1.write( byteArray[0] );
-    Serial.print( byteArray[0] );
-    Serial.print( ' ' );
-    Serial.print( byteArray[1] );
-    Serial.print( ' ' );
-    Serial.print( byteArray[2] );
-    Serial.print( ' ' );
-    Serial.println( byteArray[3] );
+    Serial.flush();
+//    Serial.write( byteArray[0] );
+    switch ( byteArray[0] ) {
+      case 'a':
+        Serial.write( "acka" );
+        break;
+      case 'b':
+        Serial.write( "ackb" );
+        break;
+      case 't': 
+        Serial.write( "ackt" );
+        break;
+      default:
+        break;
+    }
   }
   
 }
