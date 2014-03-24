@@ -150,70 +150,70 @@ int readBeagle() {
   int array_max = 4;
   unsigned char _byteData[array_max]; //temp variable for first 4 bits
   unsigned char inChar, byte_motor;
-  int inInt, int_power;
-  byte index = 0; // Index into array; where to store the character#
+  int inByte, int_power;
+  int index = 0; // Index into array; where to store the character#
   if (Serial.available() > 0) {
     // Don't read unless there you know there is data
-    inInt = Serial.read();
-    while ( inInt != -1 && index < array_max ) {
-      _byteData[index] = (unsigned char)inInt;
+    inByte = Serial.read();
+    while ( inByte != -1 && index < array_max ) {
+      _byteData[index] = (unsigned char)inByte;
       index++;
-      inInt = Serial.read();
-      // delay( 5 )
+      delay( 1 );
+      inByte = Serial.read();
     }
     switch( _byteData[0] ) {
       case 'a':
       // STOP
-      stop_motors();
       Serial.write( "acka" );
+      stop_motors();
       break;
       
       case 'b':
       // START
+      Serial.write( "ackb" );
       int_power = (int)((_byteData[1]-'0')*10)+(_byteData[2]-'0');
       start_motors( int_power );
-      Serial.write( "ackb" );
       break;
       
       case 'c':
       // TURN LEFT
-      CCW_90();
       Serial.write( "ackc" );
+      CCW_90();
       break;
       
       case 'd':
       // TURN RIGHT
-      CW_90();
       Serial.write( "ackd" );
+      CW_90();
       break;
      
       case 'e':
       // TURN AROUND
-      CCW_180();
       Serial.write( "acke" );
+      CCW_180();
       break;  
      
       case 'f':
       // Increase Power
+      Serial.write( "ackf" );
       byte_motor = ( _byteData[1] );
       int_power = ( _byteData[2] - '0' );
       inc_power( byte_motor, int_power );
-      Serial.write( "ackf" );
       break;
      
       case 'g':
       // Decrease Power
+      Serial.write( "ackg" );
       byte_motor = ( _byteData[1] );
       int_power = (int)( _byteData[2] - '0' );
       dec_power( byte_motor, int_power );
-      Serial.write( "ackg" );
       break;
       
       case 'h':
       // REVERSE
+      Serial.write( "ackh" );
       int_power = (int)((_byteData[1]-'0')*10)+(_byteData[2]-'0');
       reverse( int_power );
-      Serial.write( "ackh" );
       break;
 
       case 't':
