@@ -15,32 +15,27 @@ temp = 0;
 
 def setup():
   # Start Serial2 at 9600 baud:
-  Serial1.begin(9600)
+  Serial2.begin(9600)
 
 
 def loop():
   #a = BitArray('0xaa')
   #Serial2.write(a.hex)
   global temp
-  data1 = "01".decode("hex")
-  print data1
-  delay(200)
-  if (temp == 0):
-    Serial1.write(data1)
-    #temp = 1
-    delay(5000)
-    print "Data Sent:\n '%s'" % data1.decode("ascii")
+  data1 = "t000"
+  Serial2.write(data1)
+  # delay(5000)
+  print "Data Sent:\n '%s'" % data1.decode("ascii")
 
-  if (Serial1.available()):
+  if (Serial2.available()):
     # There's incoming data
     data = ''
-    while(Serial1.available()):
+    while(Serial2.available()):
       # If multiple characters are being sent we want to catch
       # them all, so add received byte to our data string and 
       # delay a little to give the next byte time to arrive:
-      data += Serial1.read()
+      data += Serial2.read()
       delay(200)
-      temp = 0;
 
     # Print what was sent:
     print "Data received:\n  '%s'" % data

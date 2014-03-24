@@ -9,8 +9,8 @@ def setup():
 	"""
 	Set up the UART communication to baud rate 9600
 	"""
- 	Serial2.begin(9600)
- 	print "setup"
+	Serial2.begin(9600)
+	print "setup"
 
 def read():
 	"""
@@ -22,8 +22,7 @@ def read():
 		data = ''
 		while( Serial2.available() ):
 			data += Serial2.read()
-			# delay(100)
-			temp = 0;
+			delay(5)
 	return data
 
 def test():

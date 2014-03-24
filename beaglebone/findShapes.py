@@ -5,44 +5,64 @@ import cv
 import numpy as np
 import time
 import argparse
+import pprint
+
+pp = pprint.PrettyPrinter()
+# a running average
+avgContors = 0
+frameCount = 0
 
 def findShapes( frame ):
+	global frameCount, avgContors
+
 	gray = cv2.cvtColor(frame, cv.CV_RGB2GRAY)
 	ret, thresh = cv2.threshold( gray, 127, 255, 1 )
 	contours, h = cv2.findContours( thresh, 1, 2 )
 	
+	print "there are " + str(len(contours)) + " contours."
+	# update contour average
+	avgContors = ( len(contours) + frameCount*avgContors ) / (frameCount + 1)
+
 	for cnt in contours:
+		# print "contour"
+		# print cnt
 		approx = cv2.approxPolyDP( cnt, 0.01*cv2.arcLength(cnt,True), True )
-		#print len(approx)
-		if len(approx) == 3:
-			#print "triangle"
-			cv2.drawContours( frame, [cnt], 0, (0,255,0), -1 )
-		elif len(approx) == 4:
-			#print "square"
-			cv2.drawContours( frame, [cnt], 0, (0,0,255), -1 )
-		elif len(approx) == 8:
-			#print "octogon"
-			cv2.drawContours( frame, [cnt], 0, (255,255,0), -1 )
+		# approx = len(cnt)
+		# print "approx"
+		# print approx
+		if len(approx) != len(cnt):
+			print "len(cnt) = " + str(len(cnt)) + ", len(approx) = " + str(len(approx))
+		
+		# if len(approx) == 3:
+		# 	#print "triangle"
+		# 	cv2.drawContours( frame, [cnt], 0, (0,255,0), -1 )
+		# elif len(approx) == 4:
+		# 	#print "square"
+		# 	cv2.drawContours( frame, [cnt], 0, (0,0,255), -1 )
+		# elif len(approx) == 8:
+		# 	#print "octagon"
+		# 	cv2.drawContours( frame, [cnt], 0, (255,255,0), -1 )
 
 def body( args ):
+	global frameCount, avgContors
+	
 	# open output window if needed
 	if args.show:
 		cv2.namedWindow("preview", cv2.WINDOW_NORMAL)
 	
 	print "opening videoCapture"
 	if args.infile:
-		# cpature from input file
+		# capture from input file
 		capture = cv2.VideoCpature( args.infile )
 		if not cpature.isOpened():
 			print "failed to open video file"
 			return
 	else:
-		# cpature from default camera
+		# capture from default camera
 		capture = cv2.VideoCapture(0)
 		capture.set(cv.CV_CAP_PROP_FRAME_WIDTH, 340)
 		capture.set(cv.CV_CAP_PROP_FRAME_HEIGHT, 240)
 		capture.set(cv.CV_CAP_PROP_BRIGHTNESS, .5)
-		#capture.set(cv.CV_CAP_PROP_FPS, 30)
 		if not capture.isOpened():
 			print "failed to connect camera"
 			return
@@ -67,7 +87,6 @@ def body( args ):
 	
 	# time for the loop where all the work gets done
 	t0 = time.time()
-	i = 0
 	try:
 		while flag:
 			if not args.noprocess:	
@@ -78,7 +97,12 @@ def body( args ):
 				key = cv2.waitKey(5)
 			if args.outfile:
 				writer.write( frame )
-			i += 1
+
+			frameCount += 1
+			# only check a few frames for testing
+			if frameCount >= 100:
+				break
+
 			flag, frame = capture.read()
 
 	except KeyboardInterrupt:
@@ -87,9 +111,10 @@ def body( args ):
 	t1 = time.time()
 	tt = t1 - t0
 	
-	print "frames: " + str(i)
+	print "frames: " + str(frameCount)
 	print "time: " + str(tt)
-	print "fps: " + str(i/tt)
+	print "fps: " + str(frameCount/tt)
+	print "average contours per frame: " + str(avgContors)
 
 if __name__ == "__main__":	
 	parser = argparse.ArgumentParser()
