@@ -5,7 +5,7 @@
 #define DEBUG
 
 long M1_cur, M2_cur, M1_val, M2_val;  // Motor encoder values
-int main_power, curr_power;  // Driving power; Stored for directional correction
+int main_power;  // Driving power; Stored for directional correction
 int sensorValue;  // Raw value read from EOPD
 int calcValue = 0;  // Distance value in milimeters
 String inData;  // Allocate some space for string
@@ -132,7 +132,7 @@ void EOPDsensor(){
     stop_motors();
   }
 }
-
+// Read from the Beaglebone and call corresponding function
 int readBeagle() {
   int array_max = 4;
   unsigned char _byteData[array_max]; //temp variable for first 4 bits
