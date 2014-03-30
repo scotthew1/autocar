@@ -1,3 +1,4 @@
+#!/usr/bin/python
 
 import cv2
 import cv
@@ -79,6 +80,15 @@ class VideoCapture:
 		else:
 			raise Exception( "No frame to preview." )
 
+	def findLines( self ):
+		if self.currentFrame is None:
+			raise Exception( "No frame to process." )
+		edges = cv2.Canny( self.currentFrame, 50, 200 )
+		gray  = cv2.cvtColor( edges, cv.CV_RGB2GRAY )
+		lines = cv2.HoughLinesP( gray, 1, cv.CV_PI/180, 50 )
+		for line in lines:
+			print line
+
 	def findShapes( self ):
 		# global frameCount, avgContors
 
@@ -127,6 +137,7 @@ if __name__ == "__main__":
 
 	t0 = time.time()
 	while vc.captureFrame() and vc.frameCount < args.framelimit:
+		vc.findLines()
 		if args.outfile:
 			vc.writeFrame()
 		if args.show:
