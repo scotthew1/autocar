@@ -5,8 +5,8 @@
 #define DEBUG
 
 long M1_cur, M2_cur, M1_val, M2_val;  // Motor encoder values
-int main_power, curr_power;  // Driving power; Stored for directional correction
-int sensorValue = analogRead(A0);  // Raw value read from EOPD
+int main_power;  // Driving power; Stored for directional correction
+int sensorValue;  // Raw value read from EOPD
 int calcValue = 0;  // Distance value in milimeters
 String inData;  // Allocate some space for string
 String first4Bits;  // The first 4 recieved bits
@@ -21,6 +21,8 @@ ISR(TIMER1_COMPA_vect){
 
 void loop(){
   readBeagle();
+  EOPDsensor();
+  delay(10);
   /*
   start_motors(15);
   delay(1000);
@@ -123,18 +125,14 @@ void reverse(int power){
 }
 // EOPD Object Detection
 void EOPDsensor(){
-  //Convert raw value of(24-724) to milimeters
-  if(sensorValue > 200){
-    calcValue = ((524.88/sqrt(sensorValue))-15.29);
+  Serial.print("sensorValue= ");
+  Serial.println(sensorValue);
+  if(sensorValue >= 2){
+    Serial.write( "eopd" );
+    stop_motors();
   }
-  else{
-    calcValue = ((524.88/sqrt(sensorValue))-21.29);
-  } 
-  //Figure out threshold for distance checking.
-  //What distance will trigger EOPD?
-  //EOPD run multiple check to confirm object?
 }
-
+// Read from the Beaglebone and call corresponding function
 int readBeagle() {
   int array_max = 4;
   unsigned char _byteData[array_max]; //temp variable for first 4 bits

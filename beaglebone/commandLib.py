@@ -180,3 +180,28 @@ def reverse( speed ):
 	delay( delayAfterWrite )
 	lastCall = 'h'
 	if DEMO: readAndCheck()
+
+def nudge( motor ):
+	"""
+	Nudges the car slight left or right depending on the motor selected.
+	"""
+	global lastCall
+	if not isinstance(motor, basestring) or len(motor) != 2:
+		raise ValueError
+	command = 'n' + motor.decode("hex") + "00"
+	Serial2.write( command )
+	delay( delayAfterWrite )
+	lastCall = 'n'
+	if DEMO: readAndCheck()
+
+def obj_det( speed ):
+	"""
+	If the arduino detects an object: reverse; stop; 180-turn; forward;
+	"""
+	global lastCall
+
+	reverse(speed)
+	delay(1000)
+	turnAround()
+	delay(1000)
+	start(speed)
