@@ -4,6 +4,9 @@
 
 from bbio import *  #for when the beaglebone is hooked up
 
+# comment this out when not demoing
+DEMO = False
+
 M1 = "01"
 M2 = "02"
 lastCall = None
@@ -47,6 +50,7 @@ def readAndCheck():
 	if not msg or not ack:
 		return None
 	elif msg == ack:
+		if DEMO: print "message received! " + msg
 		return True
 	else:
 		print "unexpected acknowledgment: " + msg
@@ -62,6 +66,7 @@ def test():
 	Serial2.write( command )
 	delay( delayAfterWrite )
 	lastCall = 't'
+	if DEMO: readAndCheck()
 
 
 def stop():
@@ -73,6 +78,7 @@ def stop():
 	Serial2.write( command )
 	delay( delayAfterWrite )
 	lastCall = 'a'
+	if DEMO: readAndCheck()
 
 def start( speed ): 
 	"""
@@ -89,6 +95,7 @@ def start( speed ):
 	Serial2.write( command )
 	delay( delayAfterWrite )
 	lastCall = 'b'
+	if DEMO: readAndCheck()
 
 def leftTurn():
 	"""
@@ -99,6 +106,7 @@ def leftTurn():
 	Serial2.write( command )
 	delay( delayAfterWrite )
 	lastCall = 'c'
+	if DEMO: readAndCheck()
 
 def rightTurn():
 	"""
@@ -109,6 +117,7 @@ def rightTurn():
 	Serial2.write( command )
 	delay( delayAfterWrite )
 	lastCall = 'd'
+	if DEMO: readAndCheck()
 
 def turnAround():
 	"""
@@ -119,6 +128,7 @@ def turnAround():
 	Serial2.write( command )
 	delay( delayAfterWrite )
 	lastCall = 'e'
+	if DEMO: readAndCheck()
 
 def increasePower( motor, speed ):   
 	"""
@@ -135,6 +145,7 @@ def increasePower( motor, speed ):
 	Serial2.write( command )
 	delay( delayAfterWrite )
 	lastCall = 'f'
+	if DEMO: readAndCheck()
 
 def decreasePower( motor, speed ):  
 	"""
@@ -151,6 +162,7 @@ def decreasePower( motor, speed ):
 	Serial2.write( command )
 	delay( delayAfterWrite )
 	lastCall = 'g'
+	if DEMO: readAndCheck()
 
 def reverse( speed ):  
 	"""
@@ -167,3 +179,4 @@ def reverse( speed ):
 	Serial2.write( command )
 	delay( delayAfterWrite )
 	lastCall = 'h'
+	if DEMO: readAndCheck()
