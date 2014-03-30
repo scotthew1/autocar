@@ -13,7 +13,7 @@ class VideoCapture:
 		print "opening videoCapture"
 		if infile:
 			# capture from input file
-			self.capture = cv2.VideoCpature( args.infile )
+			self.capture = cv2.VideoCapture( args.infile )
 			if not self.capture.isOpened():
 				raise Exception( "Could not open input file: %s" % infile )
 		else:
@@ -84,10 +84,12 @@ class VideoCapture:
 		if self.currentFrame is None:
 			raise Exception( "No frame to process." )
 		edges = cv2.Canny( self.currentFrame, 50, 200 )
-		gray  = cv2.cvtColor( edges, cv.CV_RGB2GRAY )
-		lines = cv2.HoughLinesP( gray, 1, cv.CV_PI/180, 50 )
-		for line in lines:
-			print line
+		# gray  = cv2.cvtColor( edges, cv.CV_RGB2GRAY )
+		lines = cv2.HoughLinesP( edges, 1, cv.CV_PI/180, 50 )
+		lineFrame = self.currentFrame
+		for l in lines[0]:
+			cv2.line( lineFrame, (l[0],l[1]), (l[2],l[3]), (0,0,255), 3 )
+		return lineFrame
 
 	def findShapes( self ):
 		# global frameCount, avgContors
@@ -136,12 +138,13 @@ if __name__ == "__main__":
 	vc = VideoCapture( infile=args.infile, outfile=args.outfile, fourcc=args.fourcc, preview=args.show )
 
 	t0 = time.time()
-	while vc.captureFrame() and vc.frameCount < args.framelimit:
-		vc.findLines()
+	while vc.captureFrame() and vc.frameCount <= args.framelimit:
+		print "finding lines..."
+		lineFrame = vc.findLines()
 		if args.outfile:
-			vc.writeFrame()
+			vc.writeFrame( lineFrame )
 		if args.show:
-			vc.previewFrame()
+			vc.previewFrame( lineFrame )
 
 	t1 = time.time()
 	tt = t1 - t0
