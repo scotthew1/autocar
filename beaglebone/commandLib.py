@@ -180,3 +180,15 @@ def reverse( speed ):
 	delay( delayAfterWrite )
 	lastCall = 'h'
 	if DEMO: readAndCheck()
+
+def nudge( motor ):
+	"""
+	Nudges the car slight left or right depending on the motor selected.
+	"""
+	global lastCall
+
+	command = 'n' + motor.decode("hex") + "00"
+	Serial2.write( command )
+	delay( delayAfterWrite )
+	lastCall = 'n'
+	if DEMO: readAndCheck()
