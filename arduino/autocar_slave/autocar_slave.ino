@@ -5,7 +5,7 @@
 #define DEBUG
 
 long M1_cur, M2_cur, M1_val, M2_val;  // Motor encoder values
-int main_power;  // Driving power; Stored for directional correction
+int main_power, curr_power;  // Driving power; Stored for directional correction
 int sensorValue = analogRead(A0);  // Raw value read from EOPD
 int calcValue = 0;  // Distance value in milimeters
 String inData;  // Allocate some space for string
@@ -21,35 +21,15 @@ ISR(TIMER1_COMPA_vect){
 
 void loop(){
   readBeagle();
-
-  // This is TEST code!
-  // Serial.println("CCW_90 : Making Left Turn");
-  // CCW_90();
-  // delay(5000);
-  // Serial.println("start_motors");
-  // start_motors(50);
-  // delay(5000);
-  // Serial.println("stop_motors");
-  // stop_motors();
-  // delay(5000);
-  // Serial.println("CW_90 : Making Right Turn");
-  // CW_90();
-  // delay(5000);
-  // Serial.println("start_motors");
-  // start_motors(50);
-  // delay(5000);
-  // Serial.println("stop_motors");
-  // stop_motors();
-  // delay(5000);
-  // Serial.println("CCW_180 : Turn Around");
-  // CCW_180();
-  // delay(5000);
-  // Serial.println("start_motors");
-  // start_motors(50);
-  // delay(5000);
-  // Serial.println("stop_motors");
-  // stop_motors();
-  // delay(5000);
+  /*
+  start_motors(15);
+  delay(1000);
+  nudge(Mx_M1);
+  Serial.println("NUDGE");
+  delay(1000);
+  nudge(Mx_M1);
+  Serial.println("NUDGE");
+  delay(1000);*/
 }
 // Left Turn
 void CCW_90(){  
@@ -98,10 +78,11 @@ void CCW_180(){
 }
 // Start Driving
 void start_motors(int power){
-  Mx.SetMode(Mx_M1, FLOAT);
-  Mx.SetMode(Mx_M2, FLOAT+INV);
+  Mx.SetMode(Mx_M1, FLOAT+SPEED);
+  Mx.SetMode(Mx_M2, FLOAT+INV+SPEED);
   main_power = power;  // Store power to manipulate in other functions
-  Mx.SetMotors(Mx_M1+Mx_M2, power);  // Drive at set power value
+  Mx.SetMotors(Mx_M1, power);  // Drive at set power value
+  Mx.SetMotors(Mx_M2, power);
 }
 // Stop Motors
 void stop_motors(){
@@ -114,22 +95,30 @@ void stop_motors(){
 }
 // Increment Power to single motor
 void inc_power(unsigned char motor, int increment){
-  Mx.SetMode(Mx_M1, FLOAT);  // Set M1 to Float
-  Mx.SetMode(Mx_M2, FLOAT+INV);  // Set M2 to Float and Inverse motor direction
+  Mx.SetMode(Mx_M1, FLOAT+SPEED);  // Set M1 to Float
+  Mx.SetMode(Mx_M2, FLOAT+INV+SPEED);  // Set M2 to Float and Inverse motor direction
   Mx.SetMotors(motor, main_power+increment); // Increment current power by set value
-  delay(500);
+  delay(50);
 }
 // Decrement Power to single motor
 void dec_power(unsigned char motor, int decrement){
-  Mx.SetMode(Mx_M1, FLOAT);  // Set M1 to Float
-  Mx.SetMode(Mx_M2, FLOAT+INV);  // Set M2 to Float and Inverse motor direction
+  Mx.SetMode(Mx_M1, FLOAT+SPEED);  // Set M1 to Float
+  Mx.SetMode(Mx_M2, FLOAT+INV+SPEED);  // Set M2 to Float and Inverse motor direction
   Mx.SetMotors(motor, main_power-decrement); // Decrement current power by set value
-  delay(500);
+  delay(50);
+}
+// Turn the robot slighty left or right
+void nudge(unsigned char motor){
+  Mx.SetMode(Mx_M1, FLOAT+SPEED);
+  Mx.SetMode(Mx_M2, FLOAT+INV+SPEED);
+  inc_power(motor,20);
+  delay(75);
+  start_motors(main_power);
 }
 // Start Reverse
 void reverse(int power){
-  Mx.SetMode(Mx_M1, FLOAT+INV);  // Set M1 to Float and Inverse motor direction
-  Mx.SetMode(Mx_M2, FLOAT);  // Set M2 to Float
+  Mx.SetMode(Mx_M1, FLOAT+INV+SPEED);  // Set M1 to Float and Inverse motor direction
+  Mx.SetMode(Mx_M2, FLOAT+SPEED);  // Set M2 to Float
   Mx.SetMotors(Mx_M1+Mx_M2, power);  // Reverse at set power value
 }
 // EOPD Object Detection
@@ -214,6 +203,12 @@ int readBeagle() {
       Serial.write( "ackh" );
       int_power = (int)((_byteData[1]-'0')*10)+(_byteData[2]-'0');
       reverse( int_power );
+      break;
+      
+      case 'n':
+      // Nudge
+      Serial.write( "ackn" );
+      nudge(_byteData[1]);
       break;
 
       case 't':
