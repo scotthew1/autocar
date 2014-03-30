@@ -1,21 +1,36 @@
 #!/usr/bin/python
 
 from bbio import *
+from videoLib import VideoCapture
 import commandLib as cl
 
 def mainLoop():
-	cl.start( 50 )
-	delay( 100 )
-	msg = cl.read()
-	if msg != "ackb":
+	vc = VideoCapture( outfile="../sample_video/camup3_movemnet.avi" )
+
+	print "sending start"
+	cl.start( 15 )
+	test = cl.readAndCheck()
+	print test
+	if not test:
 		print "start not received D="
 	else:
 		print "start received!"
-	delay( 5000 )
+
+	t0 = time.time()
+	while vc.captureFrame() and vc.frameCount < 200:
+		vc.writeFrame()
+
+	t1 = time.time()
+	tt = t1 - t0
+	
+	print "frames: %d" % vc.frameCount
+	print "time: %f" % tt
+	print "fps: %f" % (vc.frameCount/tt)
+
+	# delay( 7000 )
+	print "sending stop"
 	cl.stop()
-	delay( 100 )
-	msg = cl.read()
-	if msg != "acka":
+	if not cl.readAndCheck():
 		print "stop not received D="
 	else:
 		print "stop received!"
