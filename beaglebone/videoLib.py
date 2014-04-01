@@ -4,9 +4,50 @@
 import cv2
 import cv
 import numpy as np
+from collections import deque
+
+
+class FrameMeta:
+
+	avgLeftLine = None
+	avgRightLine = None
+	horizLines = None
+	xIntersect = None
+
+	def __init__( self, image ):
+		self.img = image
+
+
+class FrameBuffer:
+
+	def __init__( self, maxLen=5 ):
+		self.buffer = deque( maxlen=maxLen )
+
+	def append( self, frame ):
+		self.buffer.append( frame )
+
+	def getAvgXIntersect( self ):
+		intersects = [ frame.xIntersect for frame in self.buffer if frame.xIntersect ]
+		if len( intersects ) > 0:
+			return sum( intersects ) / len( intersects )
+		else:
+			return None
+
+	def newAvgXIntersect( self, x ):
+		intersects = [ frame.xIntersect for frame in self.buffer if frame.xIntersect ]
+		if len( intersects ) > 0:
+			intersects.append( x )
+			return sum( intersects ) / len( intersects )
+		else:
+			return x
+
 
 class VideoCapture:
+	
 	frameCount = 0
+	xIntersects = deque( maxlen=5 )
+	frameBuf = FrameBuffer()
+	currentMeta = None
 
 	def __init__( self, infile=None, outfile=None, fourcc="XVID", preview=False ):
 		print "opening videoCapture"
@@ -51,11 +92,20 @@ class VideoCapture:
 		else:
 			self.preview = False
 
+
+	# capturing / storing frames
 	def captureFrame( self ):
 		flag, self.currentFrame = self.capture.read()
+		self.currentMeta = FrameMeta( self.currentFrame )
 		if flag:
 			self.frameCount += 1
 		return flag
+
+	def saveFrameToBuf( self, frame=None ):
+		if frame is not None:
+			self.frameBuf.append( frame )
+		else:
+			self.frameBuf.append( self.currentMeta )
 
 	def writeFrame( self, frame=None ):
 		if not self.writer:
@@ -79,6 +129,9 @@ class VideoCapture:
 		else:
 			raise Exception( "No frame to preview." )
 
+
+
+	# math functions
 	def getAvgLine( self, lines ):
 		outLine = [0, 0, 0, 0]
 		length  = len( lines )
@@ -103,8 +156,41 @@ class VideoCapture:
 		-----------------------------------------------
 		         (x1-x2)(y3-y4)-(y1-y2)(x3-x4)
 		"""
-		return ( (l1[0]*l1[3] - l1[1]*l1[2])*(l2[0]-l2[2]) - (l1[0]-l1[2])*(l2[0]*l2[3] - l2[1]*l2[2]) ) / ( (l1[0]-l1[2])*(l2[1]-l2[3])-(l1[1]-l1[3])*(l2[0]-l2[2]) )
+		x = ( (l1[0]*l1[3] - l1[1]*l1[2])*(l2[0]-l2[2]) - (l1[0]-l1[2])*(l2[0]*l2[3] - l2[1]*l2[2]) ) / ( (l1[0]-l1[2])*(l2[1]-l2[3])-(l1[1]-l1[3])*(l2[0]-l2[2]) )
+		# self.xIntersects.append( x )
+		# return sum( self.xIntersects ) / len( self.xIntersects )
+		return x
 
+
+	def drawGrid( self, frame=None ):
+		color = (0,0,0)
+		thick = 1
+		vert1 = self.width / 4
+		vert2 = self.width / 2
+		vert3 = 3 * ( self.width / 4 )
+		horz1 = self.height / 4
+		horz2 = self.height / 2
+		horz3 = 3 * ( self.height / 4 )
+
+		if frame is not None:
+			cv2.line( frame, (vert1,-1000), (vert1,1000), color, thick )
+			cv2.line( frame, (vert2,-1000), (vert2,1000), color, thick )
+			cv2.line( frame, (vert3,-1000), (vert3,1000), color, thick )
+			cv2.line( frame, (-1000,horz1), (1000,horz1), color, thick )
+			cv2.line( frame, (-1000,horz2), (1000,horz2), color, thick )
+			cv2.line( frame, (-1000,horz3), (1000,horz3), color, thick )
+		elif self.currentFrame is not None:
+			cv2.line( self.currentFrame, (vert1,-1000), (vert1,1000), color, thick )
+			cv2.line( self.currentFrame, (vert2,-1000), (vert2,1000), color, thick )
+			cv2.line( self.currentFrame, (vert3,-1000), (vert3,1000), color, thick )
+			cv2.line( self.currentFrame, (-1000,horz1), (1000,horz1), color, thick )
+			cv2.line( self.currentFrame, (-1000,horz2), (1000,horz2), color, thick )
+			cv2.line( self.currentFrame, (-1000,horz3), (1000,horz3), color, thick )
+		else:
+			raise Exception( "No frame." )
+
+
+	# image processing functions
 	def findLines( self ):
 		if self.currentFrame is None:
 			raise Exception( "No frame to process." )
@@ -114,9 +200,8 @@ class VideoCapture:
 		lines = cv2.HoughLinesP( edges, 1, np.pi/180, 60, maxLineGap=10 )
 		lineFrame = self.currentFrame
 		if lines is not None:
-			# arrays of grouped lines
 			( left, right ) = [], []
-			# loop for HoughLinesP lines
+			# loop through all lines found
 			midpoint = (self.width/2)
 			for l in lines[0]:
 				# x1 = l[0]; y1 = l[1]; x2 = l[2]; y2 = l[3]
@@ -133,8 +218,11 @@ class VideoCapture:
 				else:
 					# don't know
 					pass
+
 			l1 = None
 			l2 = None
+			avgXIntersect = self.frameBuf.getAvgXIntersect()
+			# find average lines and line intersect
 			if len( left ) > 0:
 				l1 = self.getAvgLine( left )
 				cv2.line( lineFrame, (l1[0],l1[1]), (l1[2],l1[3]), (0,255,0), 3 )
@@ -142,12 +230,21 @@ class VideoCapture:
 				l2 = self.getAvgLine( right )
 				cv2.line( lineFrame, (l2[0],l2[1]), (l2[2],l2[3]), (255,0,0), 3 )
 			if l1 is not None and l2 is not None:
-				xIntersect = self.getLineIntersectX( l1, l2 )
-				cv2.circle( lineFrame, (xIntersect, self.height/2), 4, (0,255,255) )
+				x = self.getLineIntersectX( l1, l2 )
+				self.currentMeta.xIntersect = x
+				avgXIntersect = self.frameBuf.newAvgXIntersect( x )
+				cv2.putText( lineFrame, "x: %d" % avgXIntersect, (10,15), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,255,255) )
+				cv2.circle( lineFrame, (avgXIntersect, self.height/2), 4, (0,255,255) )
+			elif avgXIntersect is not None:
+				cv2.putText( lineFrame, "x: %d" % avgXIntersect, (10,15), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,255,255) )
+				cv2.circle( lineFrame, (avgXIntersect, self.height/2), 4, (0,255,255) )
+
 		else:
 			print "no lines detected"
+
 		return lineFrame
 
+	# TODO: put into a working state
 	def findShapes( self ):
 		# global frameCount, avgContors
 
@@ -180,6 +277,8 @@ class VideoCapture:
 			# 	cv2.drawContours( frame, [cnt], 0, (255,255,0), -1 )
 
 
+
+
 if __name__ == "__main__":
 	from time import time, sleep
 	from argparse import ArgumentParser
@@ -200,11 +299,13 @@ if __name__ == "__main__":
 	t0 = time()
 	while vc.captureFrame():
 		lineFrame = vc.findLines()
+		# vc.drawGrid( lineFrame )
 		if args.outfile:
 			vc.writeFrame( lineFrame )
 		if args.show:
 			vc.previewFrame( lineFrame )
 			sleep( 0.03 )
+		vc.saveFrameToBuf()
 		if args.framelimit and vc.frameCount <= args.framelimit:
 			break
 
