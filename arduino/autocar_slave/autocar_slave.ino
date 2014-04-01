@@ -21,8 +21,8 @@ ISR(TIMER1_COMPA_vect){
 
 void loop(){
   readBeagle();
-  EOPDsensor();
-  delay(10);
+  //EOPDsensor();
+  //delay(10);
   /*
   start_motors(15);
   delay(1000);
@@ -125,8 +125,6 @@ void reverse(int power){
 }
 // EOPD Object Detection
 void EOPDsensor(){
-  Serial.print("sensorValue= ");
-  Serial.println(sensorValue);
   if(sensorValue >= 2){
     Serial.write( "eopd" );
     stop_motors();
