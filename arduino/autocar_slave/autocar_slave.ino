@@ -113,8 +113,8 @@ void dec_power(unsigned char motor, int decrement){
 void nudge(unsigned char motor){
   Mx.SetMode(Mx_M1, FLOAT+SPEED);
   Mx.SetMode(Mx_M2, FLOAT+INV+SPEED);
-  inc_power(motor,20);
-  delay(75);
+  inc_power(motor,10);
+  delay(50);
   start_motors(main_power);
 }
 // Start Reverse
