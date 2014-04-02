@@ -7,8 +7,8 @@ from bbio import *  #for when the beaglebone is hooked up
 # comment this out when not demoing
 DEMO = False
 
-M1 = "01"
-M2 = "02"
+M1 = "01" # right
+M2 = "02" # left
 lastCall = None
 delayAfterWrite = 50
 
@@ -18,6 +18,12 @@ def setup():
 	"""
 	Serial2.begin(9600)
 	print "setup"
+
+def flush():
+	"""
+	Clears out any existing messages
+	"""
+	Serial2.flush()
 
 def read():
 	"""

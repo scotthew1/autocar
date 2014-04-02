@@ -45,7 +45,6 @@ class FrameBuffer:
 class VideoCapture:
 	
 	frameCount = 0
-	xIntersects = deque( maxlen=5 )
 	frameBuf = FrameBuffer()
 	currentMeta = None
 
@@ -157,8 +156,6 @@ class VideoCapture:
 		         (x1-x2)(y3-y4)-(y1-y2)(x3-x4)
 		"""
 		x = ( (l1[0]*l1[3] - l1[1]*l1[2])*(l2[0]-l2[2]) - (l1[0]-l1[2])*(l2[0]*l2[3] - l2[1]*l2[2]) ) / ( (l1[0]-l1[2])*(l2[1]-l2[3])-(l1[1]-l1[3])*(l2[0]-l2[2]) )
-		# self.xIntersects.append( x )
-		# return sum( self.xIntersects ) / len( self.xIntersects )
 		return x
 
 
@@ -198,9 +195,10 @@ class VideoCapture:
 		ret, thresh = cv2.threshold( gray, 230, 255, cv2.THRESH_BINARY )
 		edges = cv2.Canny( thresh, 50, 100 )
 		lines = cv2.HoughLinesP( edges, 1, np.pi/180, 60, maxLineGap=10 )
-		lineFrame = self.currentFrame
+		lineFrame = self.currentFrame.copy()
+		avgXIntersect = None
 		if lines is not None:
-			( left, right ) = [], []
+			( horz, left, right ) = [], [], []
 			# loop through all lines found
 			midpoint = (self.width/2)
 			for l in lines[0]:
@@ -209,6 +207,7 @@ class VideoCapture:
 				if .9 <= yRatio <= 1.1:
 					# mostly horizontal
 					cv2.line( lineFrame, (l[0],l[1]), (l[2],l[3]), (0,0,255), 3 )
+					horz.append( l )
 				elif l[0] < midpoint and l[2] < midpoint:
 					# left side of the screen
 					left.append( l )
@@ -217,7 +216,7 @@ class VideoCapture:
 					right.append( l )
 				else:
 					# don't know
-					pass
+					cv2.line( lineFrame, (l[0],l[1]), (l[2],l[3]), (0,0,255), 3 )
 
 			l1 = None
 			l2 = None
@@ -238,11 +237,14 @@ class VideoCapture:
 			elif avgXIntersect is not None:
 				cv2.putText( lineFrame, "x: %d" % avgXIntersect, (10,15), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,255,255) )
 				cv2.circle( lineFrame, (avgXIntersect, self.height/2), 4, (0,255,255) )
-
+			self.currentMeta.avgLeftLine = l1
+			self.currentMeta.avgRightLine = l2
+			self.currentMeta.horizLines = horz
 		else:
 			print "no lines detected"
 
-		return lineFrame
+		return lineFrame, avgXIntersect
+
 
 	# TODO: put into a working state
 	def findShapes( self ):
@@ -292,22 +294,30 @@ if __name__ == "__main__":
 	parser.add_argument( "-l", "--framelimit", type=int, help="number of frames to capture" )
 	args = parser.parse_args()
 
-	print args
-
 	vc = VideoCapture( infile=args.infile, outfile=args.outfile, fourcc=args.fourcc, preview=args.show )
 
 	t0 = time()
-	while vc.captureFrame():
-		lineFrame = vc.findLines()
-		# vc.drawGrid( lineFrame )
-		if args.outfile:
-			vc.writeFrame( lineFrame )
-		if args.show:
-			vc.previewFrame( lineFrame )
-			sleep( 0.03 )
-		vc.saveFrameToBuf()
-		if args.framelimit and vc.frameCount <= args.framelimit:
-			break
+	try:
+		while vc.captureFrame():
+			if args.noprocess:
+				if args.outfile:
+					vc.writeFrame()
+				if args.show:
+					vc.previewFrame()
+					# sleep( 0.03 )
+			else:	
+				lineFrame, intersect = vc.findLines()
+				vc.drawGrid( lineFrame )
+				if args.outfile:
+					vc.writeFrame( lineFrame )
+				if args.show:
+					vc.previewFrame( lineFrame )
+					# sleep( 0.03 )
+			vc.saveFrameToBuf()
+			if args.framelimit and vc.frameCount <= args.framelimit:
+				break
+	except KeyboardInterrupt:
+		pass
 
 	t1 = time()
 	tt = t1 - t0
