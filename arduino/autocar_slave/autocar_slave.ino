@@ -10,6 +10,7 @@ int sensorValue;  // Raw value read from EOPD
 int calcValue = 0;  // Distance value in milimeters
 String inData;  // Allocate some space for string
 String first4Bits;  // The first 4 recieved bits
+unsigned int batt_status;
 
 void setup(){
   Serial.begin(9600);
@@ -130,6 +131,10 @@ void EOPDsensor(){
     stop_motors();
   }
 }
+void check(){
+  batt_status = Mx.CheckStatus();
+  Serial.write(
+}
 // Read from the Beaglebone and call corresponding function
 int readBeagle() {
   int array_max = 4;
@@ -205,6 +210,12 @@ int readBeagle() {
       // Nudge
       Serial.write( "ackn" );
       nudge(_byteData[1]);
+      break;
+      
+      case 'q':
+      // Check Battery
+      Serial.write( "ackq" );
+      check();
       break;
 
       case 't':
