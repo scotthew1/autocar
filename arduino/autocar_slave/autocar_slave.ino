@@ -133,7 +133,7 @@ void EOPDsensor(){
 }
 void check(){
   batt_status = Mx.CheckStatus();
-  Serial.write(
+  Serial.write();
 }
 // Read from the Beaglebone and call corresponding function
 int readBeagle() {
