@@ -133,6 +133,22 @@ void EOPDsensor(){
 }
 void check(){
   batt_status = Mx.CheckStatus();
+  switch (batt_status){
+    case 0:
+      Serial.write( "0000" );
+      break;
+      
+    case 1:
+      Serial.write( "1000" );
+      break;
+     
+    case 2:
+      Serial.write( "2000" );
+      break;
+    
+    default:
+      break;   
+  }
   Serial.write();
 }
 // Read from the Beaglebone and call corresponding function
