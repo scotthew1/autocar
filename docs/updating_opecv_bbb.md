@@ -2,12 +2,12 @@ getting opencv-2.4.8 on my bbb
 ==============================
 
 * this was the error:
-	``
+	```
 	Traceback (most recent call last):
 	  File “test.py", line 31, in <module>
 	    surf = cv2.SURF(10000,1,1,0,0)
 	AttributeError: 'module' object has no attribute ‘SURF’
-	``
+	```
 
 * tried [this][1] (opting for the more recent opencv-2.4.8), but compiling on the beaglebone was not possible because of memory constraints:
 
