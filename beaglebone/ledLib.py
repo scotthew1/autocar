@@ -17,4 +17,3 @@ def LED(color = OFF):
 	GPIO.output("P8_7", color[0])
 	GPIO.output("P8_8", color[1])
 	GPIO.output("P8_9", color[2])
-
