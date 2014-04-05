@@ -248,37 +248,50 @@ class VideoCapture:
 
 	# TODO: put into a working state
 	def findShapes( self ):
-		# global frameCount, avgContors
 
-		gray = cv2.cvtColor( self.currentFrame, cv.CV_RGB2GRAY )
-		ret, thresh = cv2.threshold( gray, 127, 255, 1 )
-		contours, h = cv2.findContours( thresh, 1, 2 )
+		# Convert BGR to HSV
+		self.hsv = cv2.cvtColor(self.currentFrame, cv2.COLOR_BGR2HSV)
+
+		#gray = cv2.cvtColor(self.currentFrame, cv.CV_RGB2GRAY)
+
+		#define range of yellow
+		lower_green = np.array([50,50,50])
+		upper_green = np.array([70,255,255])
+
+		#Using greenmask to find everything within a range of green values
+		#and returning this to help find signs on the road
+		greenmask = cv2.inRange(self.hsv, lower_yellow, upper_yellow)
+
+		#ret, thresh = cv2.threshold( gray, 127, 255, 1 )
+		#contours, h = cv2.findContours( thresh, 1, 2 )
+
+		#avgContors = 0
 		
-		print "there are " + str(len(contours)) + " contours."
+		#print "there are " + str(len(contours)) + " contours."
 		# update contour average
-		avgContors = ( len(contours) + frameCount*avgContors ) / (frameCount + 1)
+		#avgContors = ( len(contours) + self.frameCount*avgContors ) / (self.frameCount + 1)
 
-		for cnt in contours:
-			# print "contour"
-			# print cnt
-			approx = cv2.approxPolyDP( cnt, 0.01*cv2.arcLength(cnt,True), True )
-			# approx = len(cnt)
-			# print "approx"
-			# print approx
-			if len(approx) != len(cnt):
-				print "len(cnt) = " + str(len(cnt)) + ", len(approx) = " + str(len(approx))
+		#for cnt in contours:
+			#print "contour"
+			#print cnt
+			#approx = cv2.approxPolyDP( cnt, 0.01*cv2.arcLength(cnt,True), True )
+			#approx = len(cnt)
+			#print "approx"
+			#print approx
+			#if len(approx) != len(cnt):
+				#print "len(cnt) = " + str(len(cnt)) + ", len(approx) = " + str(len(approx))
 			
-			# if len(approx) == 3:
-			# 	#print "triangle"
-			# 	cv2.drawContours( frame, [cnt], 0, (0,255,0), -1 )
-			# elif len(approx) == 4:
-			# 	#print "square"
-			# 	cv2.drawContours( frame, [cnt], 0, (0,0,255), -1 )
-			# elif len(approx) == 8:
-			# 	#print "octagon"
-			# 	cv2.drawContours( frame, [cnt], 0, (255,255,0), -1 )
+			#if len(approx) == 3:
+			 	#print "triangle"
+			 	#cv2.drawContours( frame, [cnt], 0, (0,255,0), -1 )
+			#elif len(approx) == 4:
+			 	#print "square"
+			 	#cv2.drawContours( frame, [cnt], 0, (0,0,255), -1 )
+			#elif len(approx) == 8:
+			 	#print "octagon"
+			 	#cv2.drawContours( frame, [cnt], 0, (255,255,0), -1 )
 
-
+		return greenmask
 
 
 if __name__ == "__main__":
@@ -306,12 +319,14 @@ if __name__ == "__main__":
 					vc.previewFrame()
 					# sleep( 0.03 )
 			else:	
-				lineFrame, intersect = vc.findLines()
-				vc.drawGrid( lineFrame )
+				#lineFrame, intersect = vc.findLines()
+				shapeFrame = vc.findShapes()
+				#vc.drawGrid( lineFrame )
 				if args.outfile:
 					vc.writeFrame( lineFrame )
 				if args.show:
-					vc.previewFrame( lineFrame )
+					vc.previewFrame( shapeFrame )
+					
 					# sleep( 0.03 )
 			vc.saveFrameToBuf()
 			if args.framelimit and vc.frameCount <= args.framelimit:
