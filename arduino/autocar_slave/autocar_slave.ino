@@ -11,6 +11,7 @@ int calcValue = 0;  // Distance value in milimeters
 String inData;  // Allocate some space for string
 String first4Bits;  // The first 4 recieved bits
 unsigned int batt_status;
+int nudge_time;
 
 void setup(){
   Serial.begin(9600);
@@ -111,11 +112,11 @@ void dec_power(unsigned char motor, int decrement){
   delay(50);
 }
 // Turn the robot slighty left or right
-void nudge(unsigned char motor){
+void nudge(unsigned char motor, int time){
   Mx.SetMode(Mx_M1, FLOAT+SPEED);
   Mx.SetMode(Mx_M2, FLOAT+INV+SPEED);
   inc_power(motor,10);
-  delay(50);
+  delay(time);
   start_motors(main_power);
 }
 // Start Reverse
@@ -225,7 +226,8 @@ int readBeagle() {
       case 'n':
       // Nudge
       Serial.write( "ackn" );
-      nudge(_byteData[1]);
+      nudge_time = (int)(_byteData[2] - '0' );
+      nudge(_byteData[1], nudge_time);
       break;
       
       case 'q':
