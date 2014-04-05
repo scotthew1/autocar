@@ -150,7 +150,6 @@ void check(){
     default:
       break;   
   }
-  Serial.write();
 }
 // Read from the Beaglebone and call corresponding function
 int readBeagle() {
