@@ -187,14 +187,16 @@ def reverse( speed ):
 	lastCall = 'h'
 	if DEMO: readAndCheck()
 
-def nudge( motor ):
+def nudge( motor, nudgeTime ):
 	"""
 	Nudges the car slight left or right depending on the motor selected.
 	"""
 	global lastCall
+	if nudgeTime < 1 or nudgeTime >9
+		raise ValueError
 	if not isinstance(motor, basestring) or len(motor) != 2:
 		raise ValueError
-	command = 'n' + motor.decode("hex") + "00"
+	command = 'n' + motor.decode("hex") + str(nudgeTime) + '0'
 	Serial2.write( command )
 	delay( delayAfterWrite )
 	lastCall = 'n'
