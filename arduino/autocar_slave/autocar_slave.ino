@@ -113,10 +113,12 @@ void dec_power(unsigned char motor, int decrement){
 }
 // Turn the robot slighty left or right
 void nudge(unsigned char motor, int time){
+  int nTime;
   Mx.SetMode(Mx_M1, FLOAT+SPEED);
   Mx.SetMode(Mx_M2, FLOAT+INV+SPEED);
   inc_power(motor,10);
-  delay(time);
+  nTime = time * 10;
+  delay(nTime);
   start_motors(main_power);
 }
 // Start Reverse
