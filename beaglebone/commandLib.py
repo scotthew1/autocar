@@ -192,7 +192,7 @@ def nudge( motor, nudgeTime=5 ):
 	Nudges the car slight left or right depending on the motor selected.
 	"""
 	global lastCall
-	if nudgeTime < 1 or nudgeTime >9
+	if nudgeTime < 1 or nudgeTime > 9:
 		raise ValueError
 	if not isinstance(motor, basestring) or len(motor) != 2:
 		raise ValueError
