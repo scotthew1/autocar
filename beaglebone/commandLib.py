@@ -187,7 +187,7 @@ def reverse( speed ):
 	lastCall = 'h'
 	if DEMO: readAndCheck()
 
-def nudge( motor, nudgeTime ):
+def nudge( motor, nudgeTime=5 ):
 	"""
 	Nudges the car slight left or right depending on the motor selected.
 	"""
