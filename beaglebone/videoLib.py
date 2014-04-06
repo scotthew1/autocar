@@ -181,6 +181,7 @@ class VideoCapture:
 				x2 = int( (y2 - yInt) // slope )
 		except ValueError:
 			print "ValueError (slope, yInt):", slope, yInt
+			return
 
 		if frame is not None:
 			cv2.line( frame, (x1,y1), (x2,y2), color, 3 )
@@ -191,6 +192,13 @@ class VideoCapture:
 
 
 	# math functions
+	def get2PointSlope( self, line ):
+		div = line[2] - line[0]
+		if div == 0:
+			return 10000
+		else:
+			return ( line[3] - line[1] ) / div
+
 	def getBestFit( self, lines ):
 		"""
 		Finds a best fit line from a list of lines
@@ -209,7 +217,12 @@ class VideoCapture:
 			sumXY += l[0]*l[1] + l[2]*l[3]
 		xMean = sumX / float(count)
 		yMean = sumY / float(count)
-		slope = (sumXY - sumX * yMean) / (sumX2 - sumX * xMean)
+		div   = (sumX2 - sumX * xMean)
+		# if div is zero, make slope very large for our purposes
+		if div == 0:
+			slope = 10000
+		else:
+			slope = (sumXY - sumX * yMean) / div
 		yInt = yMean - slope * xMean
 		return slope, yInt
 
@@ -276,7 +289,7 @@ class VideoCapture:
 		gray  = cv2.cvtColor( self.currentFrame, cv.CV_RGB2GRAY )
 		ret, thresh = cv2.threshold( gray, 200, 255, cv2.THRESH_BINARY )
 		edges = cv2.Canny( thresh, 50, 100 )
-		lines = cv2.HoughLinesP( edges, 1, np.pi/180, 60, maxLineGap=10 )
+		lines = cv2.HoughLinesP( edges, 1, np.pi/180, 40, maxLineGap=10 )
 		lineFrame = self.currentFrame.copy()
 		avgXIntersect = None
 		if lines is not None:
@@ -284,9 +297,9 @@ class VideoCapture:
 			# loop through all lines found
 			midpoint = (self.width/2)
 			for l in lines[0]:
-				# x1 = l[0]; y1 = l[1]; x2 = l[2]; y2 = l[3]
-				yRatio = l[1] / float(l[3])
-				if .8 <= yRatio <= 1.2:
+				# check the slope to see if the line is horizontal
+				slope = self.get2PointSlope( l )
+				if  -0.3 <= slope <= 0.3:
 					# mostly horizontal
 					horz.append( l )
 				elif l[0] < midpoint and l[2] < midpoint:
@@ -304,9 +317,12 @@ class VideoCapture:
 			avgXIntersect = self.frameBuf.getAvgXIntersect()
 			# find average lines and line intersect
 			if len( horz ) > 0:
-				horzs = self.getAvgHorizontals( horz )
-				for line in horzs:
+				ptSlopeHorz = self.getAvgHorizontals( horz )
+				horz = []
+				for line in ptSlopeHorz:
+					horz.append( int(line[1]) )
 					self.drawSlopeIntLine( line[0], line[1], (0,0,255), lineFrame )
+				print horz
 			if len( left ) > 0:
 				lSlope, lYInt = self.getBestFit( left )
 				self.drawSlopeIntLine( lSlope, lYInt, (0,255,0), lineFrame )
@@ -347,23 +363,25 @@ class VideoCapture:
 		#Using greenmask to find everything within a range of green values
 		#and returning this to help find signs on the road
 		greenmask = cv2.inRange(hsv, lower_green, upper_green)
+		edges = cv2.Canny( greenmask, 50, 100 )
 		# Checks to see if we see enough green for there to be an arrow in the image
 		# Counts the number of non-zero values in the array 
 		whitecount = np.count_nonzero(greenmask)
-		print whitecount
-		if whitecount >= 300:
-			print "I see an arrow"
+		# if whitecount >= 300:
+		# 	print "I see an arrow"
 		img = self.currentFrame
-		gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+		crop = img[100:200, 100:260]
+		gray = cv2.cvtColor(crop,cv2.COLOR_BGR2GRAY)
 		corners = cv2.goodFeaturesToTrack(gray,7,0.01,10)
-		print corners
 		corners = np.int0(corners)
-
+		#num = 0
+		#if num < 1:
+		#	cv2.imwrite("thumbnail.jpg", img)
 		for i in corners:
 			x,y = i.ravel()
-			cv2.circle(img,(x,y),3,255,-1)
+			cv2.circle(gray,(x,y),3,255,-1)
 
-		return greenmask
+		return gray
 
 
 if __name__ == "__main__":
