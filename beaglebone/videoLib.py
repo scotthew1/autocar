@@ -246,7 +246,7 @@ class VideoCapture:
 		if self.currentFrame is None:
 			raise Exception( "No frame to process." )
 		gray  = cv2.cvtColor( self.currentFrame, cv.CV_RGB2GRAY )
-		ret, thresh = cv2.threshold( gray, 230, 255, cv2.THRESH_BINARY )
+		ret, thresh = cv2.threshold( gray, 200, 255, cv2.THRESH_BINARY )
 		edges = cv2.Canny( thresh, 50, 100 )
 		lines = cv2.HoughLinesP( edges, 1, np.pi/180, 60, maxLineGap=10 )
 		lineFrame = self.currentFrame.copy()
@@ -258,16 +258,14 @@ class VideoCapture:
 			for l in lines[0]:
 				# x1 = l[0]; y1 = l[1]; x2 = l[2]; y2 = l[3]
 				yRatio = l[1] / float(l[3])
-				if .8 <= yRatio <= 1.2:
+				if .7 <= yRatio <= 1.3:
 					# mostly horizontal
 					cv2.line( lineFrame, (l[0],l[1]), (l[2],l[3]), (0,0,255), 3 )
 					horz.append( l )
-				elif l[0] < midpoint:
-				# elif l[0] < midpoint and l[2] < midpoint:
+				elif l[0] < midpoint and l[2] < midpoint:
 					# left side of the screen
 					left.append( l )
-				elif l[0] > midpoint:
-				# elif l[0] > midpoint and l[2] > midpoint:
+				elif l[0] > midpoint and l[2] > midpoint:
 					# right side of the screen
 					right.append( l )
 				else:
