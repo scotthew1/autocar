@@ -9,8 +9,10 @@ from collections import deque
 
 class FrameMeta:
 
-	avgLeftLine = None
-	avgRightLine = None
+	llSlope = None
+	llYInt  = None
+	rlSlope = None
+	rlYInt  = None
 	horizLines = None
 	xIntersect = None
 
@@ -20,11 +22,14 @@ class FrameMeta:
 
 class FrameBuffer:
 
-	def __init__( self, maxLen=5 ):
+	def __init__( self, maxLen=10 ):
 		self.buffer = deque( maxlen=maxLen )
 
 	def append( self, frame ):
 		self.buffer.append( frame )
+
+	def size( self ):
+		return len( self.buffer )
 
 	def getAvgXIntersect( self ):
 		intersects = [ frame.xIntersect for frame in self.buffer if frame.xIntersect ]
@@ -57,10 +62,11 @@ class VideoCapture:
 				raise Exception( "Could not open input file: %s" % infile )
 		else:
 			# capture from default camera
+			print "connecting to camera"
 			self.capture = cv2.VideoCapture(0)
 			self.capture.set(cv.CV_CAP_PROP_FRAME_WIDTH, 340)
 			self.capture.set(cv.CV_CAP_PROP_FRAME_HEIGHT, 240)
-			self.capture.set(cv.CV_CAP_PROP_BRIGHTNESS, .5)
+			# self.capture.set(cv.CV_CAP_PROP_BRIGHTNESS, .5)
 			if not self.capture.isOpened():
 				raise Exception( "Could not connect to camera." )
 
@@ -129,36 +135,7 @@ class VideoCapture:
 			raise Exception( "No frame to preview." )
 
 
-
-	# math functions
-	def getAvgLine( self, lines ):
-		outLine = [0, 0, 0, 0]
-		length  = len( lines )
-		for l in lines:
-			outLine[0] += l[0]
-			outLine[1] += l[1]
-			outLine[2] += l[2]
-			outLine[3] += l[3]
-		outLine[0] = outLine[0] / length
-		outLine[1] = outLine[1] / length
-		outLine[2] = outLine[2] / length
-		outLine[3] = outLine[3] / length
-		return outLine
-
-	def getLineIntersectX( self, l1, l2 ):
-		"""
-		With help from http://en.wikipedia.org/wiki/Line–line_intersection
-		x1 = l1[0]; y1 = l1[1]; x2 = l1[2]; y2 = l1[3]
-		x3 = l2[0]; y3 = l2[1]; x4 = l2[2]; y4 = l2[3]
-
-		(x1*y2 - y1*x2)(x3-x4) - (x1-x2)(x3*y4 - y3*x4)
-		-----------------------------------------------
-		         (x1-x2)(y3-y4)-(y1-y2)(x3-x4)
-		"""
-		x = ( (l1[0]*l1[3] - l1[1]*l1[2])*(l2[0]-l2[2]) - (l1[0]-l1[2])*(l2[0]*l2[3] - l2[1]*l2[2]) ) / ( (l1[0]-l1[2])*(l2[1]-l2[3])-(l1[1]-l1[3])*(l2[0]-l2[2]) )
-		return x
-
-
+	# drawing functions
 	def drawGrid( self, frame=None ):
 		color = (0,0,0)
 		thick = 1
@@ -186,6 +163,83 @@ class VideoCapture:
 		else:
 			raise Exception( "No frame." )
 
+	def drawSlopeIntLine( self, slope, yInt, color, frame=None ):
+		"""
+		y = slope * x + yInt
+		x = (y - yInt) / slope
+		"""
+		y1 = 1000
+		y2 = -1000
+		x1 = int( (y1 - yInt) / slope )
+		x2 = int( (y2 - yInt) / slope )
+
+		if frame is not None:
+			cv2.line( frame, (x1,y1), (x2,y2), color, 3 )
+		elif currentFrame is not None:
+			cv2.line( self.currentFrame, (x1,y1), (x2,y2), color, 3 )
+		else:
+			raise Exception( "No frame." )
+
+
+	# math functions
+	def getBestFit( self, lines ):
+		"""
+		Finds a best fit line from a list of lines
+		With help from http://faculty.cs.niu.edu/~hutchins/csci230/best-fit.htm
+		x1 = l[0]; y1 = l[1]; x2 = l[2]; y2 = l[3]
+		"""
+		points = []
+		count, sumX, sumY, sumX2, sumXY = ( 0, 0, 0, 0, 0 )
+		for l in lines:
+			points.append( (l[0], l[1]) )
+			points.append( (l[2], l[3]) )
+			count += 2
+			sumX  += l[0] + l[2]
+			sumY  += l[1] + l[3]
+			sumX2 += l[0]*l[0] + l[2]*l[2]
+			sumXY += l[0]*l[1] + l[2]*l[3]
+		xMean = sumX / float(count)
+		yMean = sumY / float(count)
+		slope = (sumXY - sumX * yMean) / (sumX2 - sumX * xMean)
+		yInt = yMean - slope * xMean
+		return slope, yInt
+
+	def getAvgLine( self, lines ):
+		outLine = [0, 0, 0, 0]
+		length  = len( lines )
+		for l in lines:
+			outLine[0] += l[0]
+			outLine[1] += l[1]
+			outLine[2] += l[2]
+			outLine[3] += l[3]
+		outLine[0] = outLine[0] / length
+		outLine[1] = outLine[1] / length
+		outLine[2] = outLine[2] / length
+		outLine[3] = outLine[3] / length
+		return outLine
+
+	def getXIntersectFromSegs( self, l1, l2 ):
+		"""
+		Finds an x intersect based on 2 line segments
+		With help from http://en.wikipedia.org/wiki/Line–line_intersection
+		x1 = l1[0]; y1 = l1[1]; x2 = l1[2]; y2 = l1[3]
+		x3 = l2[0]; y3 = l2[1]; x4 = l2[2]; y4 = l2[3]
+
+		(x1*y2 - y1*x2)(x3-x4) - (x1-x2)(x3*y4 - y3*x4)
+		-----------------------------------------------
+		         (x1-x2)(y3-y4)-(y1-y2)(x3-x4)
+		"""
+		x = ( (l1[0]*l1[3] - l1[1]*l1[2])*(l2[0]-l2[2]) - (l1[0]-l1[2])*(l2[0]*l2[3] - l2[1]*l2[2]) ) / ( (l1[0]-l1[2])*(l2[1]-l2[3])-(l1[1]-l1[3])*(l2[0]-l2[2]) )
+		return x
+
+	def getXIntesectFromSlopeInt( self, s1, i1, s2, i2 ):
+		"""
+		Finds an x intersect based on 2 lines in slope-intersect form
+		With help from http://en.wikipedia.org/wiki/Line–line_intersection
+		line1: y = s1*x + i1; line2: y = s2*x + i2
+		"""
+		x = int( ( i2 - i1 ) / ( s1 - s2 ) )
+		return x
 
 	# image processing functions
 	def findLines( self ):
@@ -204,32 +258,34 @@ class VideoCapture:
 			for l in lines[0]:
 				# x1 = l[0]; y1 = l[1]; x2 = l[2]; y2 = l[3]
 				yRatio = l[1] / float(l[3])
-				if .9 <= yRatio <= 1.1:
+				if .8 <= yRatio <= 1.2:
 					# mostly horizontal
 					cv2.line( lineFrame, (l[0],l[1]), (l[2],l[3]), (0,0,255), 3 )
 					horz.append( l )
-				elif l[0] < midpoint and l[2] < midpoint:
+				elif l[0] < midpoint:
+				# elif l[0] < midpoint and l[2] < midpoint:
 					# left side of the screen
 					left.append( l )
-				elif l[0] > midpoint and l[2] > midpoint:
+				elif l[0] > midpoint:
+				# elif l[0] > midpoint and l[2] > midpoint:
 					# right side of the screen
 					right.append( l )
 				else:
 					# don't know
-					cv2.line( lineFrame, (l[0],l[1]), (l[2],l[3]), (0,0,255), 3 )
+					cv2.line( lineFrame, (l[0],l[1]), (l[2],l[3]), (0,255,255), 3 )
 
-			l1 = None
-			l2 = None
+			lSlope, lYInt = (None, None)
+			rSlope, rYInt = (None, None)
 			avgXIntersect = self.frameBuf.getAvgXIntersect()
 			# find average lines and line intersect
 			if len( left ) > 0:
-				l1 = self.getAvgLine( left )
-				cv2.line( lineFrame, (l1[0],l1[1]), (l1[2],l1[3]), (0,255,0), 3 )
+				lSlope, lYInt = self.getBestFit( left )
+				self.drawSlopeIntLine( lSlope, lYInt, (0,255,0), lineFrame )
 			if len( right ) > 0:
-				l2 = self.getAvgLine( right )
-				cv2.line( lineFrame, (l2[0],l2[1]), (l2[2],l2[3]), (255,0,0), 3 )
-			if l1 is not None and l2 is not None:
-				x = self.getLineIntersectX( l1, l2 )
+				rSlope, rYInt = self.getBestFit( right )
+				self.drawSlopeIntLine( rSlope, rYInt, (255,0,0), lineFrame )
+			if lSlope and rSlope:
+				x = self.getXIntesectFromSlopeInt( lSlope, lYInt, rSlope, rYInt )
 				self.currentMeta.xIntersect = x
 				avgXIntersect = self.frameBuf.newAvgXIntersect( x )
 				cv2.putText( lineFrame, "x: %d" % avgXIntersect, (10,15), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,255,255) )
@@ -237,8 +293,10 @@ class VideoCapture:
 			elif avgXIntersect is not None:
 				cv2.putText( lineFrame, "x: %d" % avgXIntersect, (10,15), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,255,255) )
 				cv2.circle( lineFrame, (avgXIntersect, self.height/2), 4, (0,255,255) )
-			self.currentMeta.avgLeftLine = l1
-			self.currentMeta.avgRightLine = l2
+			self.currentMeta.llSlope = lSlope
+			self.currentMeta.llYInt  = lYInt
+			self.currentMeta.rlSlope = rSlope
+			self.currentMeta.rlYInt  = rYInt
 			self.currentMeta.horizLines = horz
 		else:
 			print "no lines detected"
@@ -319,17 +377,17 @@ if __name__ == "__main__":
 					vc.previewFrame()
 					# sleep( 0.03 )
 			else:	
-				#lineFrame, intersect = vc.findLines()
-				shapeFrame = vc.findShapes()
-				#vc.drawGrid( lineFrame )
+				lineFrame, intersect = vc.findLines()
+				# shapeFrame = vc.findShapes()
+				vc.drawGrid( lineFrame )
 				if args.outfile:
 					vc.writeFrame( lineFrame )
 				if args.show:
-					vc.previewFrame( shapeFrame )
+					vc.previewFrame( lineFrame )
 					
 					# sleep( 0.03 )
 			vc.saveFrameToBuf()
-			if args.framelimit and vc.frameCount <= args.framelimit:
+			if args.framelimit and vc.frameCount >= args.framelimit:
 				break
 	except KeyboardInterrupt:
 		pass
