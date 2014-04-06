@@ -313,12 +313,17 @@ class VideoCapture:
 		#gray = cv2.cvtColor(self.currentFrame, cv.CV_RGB2GRAY)
 
 		#define range of yellow
-		lower_green = np.array([50,50,50])
-		upper_green = np.array([70,255,255])
+		#lower_green = np.array([50,50,50])
+		#upper_green = np.array([70,255,255])
+
+		#define range of Green - Kyle
+		# array( HUE, SATURATION, VALUE/BRIGHTNESS)
+		lower_green = np.array([90,30,20])
+		upper_green = np.array([140,100,100])
 
 		#Using greenmask to find everything within a range of green values
 		#and returning this to help find signs on the road
-		greenmask = cv2.inRange(self.hsv, lower_yellow, upper_yellow)
+		greenmask = cv2.inRange(self.hsv, lower_green, upper_green)
 
 		#ret, thresh = cv2.threshold( gray, 127, 255, 1 )
 		#contours, h = cv2.findContours( thresh, 1, 2 )
@@ -355,36 +360,48 @@ class VideoCapture:
 if __name__ == "__main__":
 	from time import time, sleep
 	from argparse import ArgumentParser
+	import sys
 
 	parser = ArgumentParser()
 	parser.add_argument( "-i", "--infile", help="use video from an input file rather than the camera" )
 	parser.add_argument( "-o", "--outfile", help="output processed to a file" )
+	parser.add_argument( "-f", "--function", help="choose image processing function, current options are 'none', 'lines', 'shapes'", default='none' )
 	parser.add_argument( "--fourcc", help="four character code to specify video output type", default="XVID" )
 	parser.add_argument( "-s", "--show", help="show the output on screen", action="store_true" )
-	parser.add_argument( "-n", "--noprocess", help="disable image processing", action="store_true" )
 	parser.add_argument( "-l", "--framelimit", type=int, help="number of frames to capture" )
 	args = parser.parse_args()
+
+	if args.function not in [ 'none', 'lines', 'shapes' ]:
+		print "The function you specified is not supported."
+		parser.print_help()
+		sys.exit(0)
 
 	vc = VideoCapture( infile=args.infile, outfile=args.outfile, fourcc=args.fourcc, preview=args.show )
 
 	t0 = time()
 	try:
 		while vc.captureFrame():
-			if args.noprocess:
+			if args.function == 'none':
 				if args.outfile:
 					vc.writeFrame()
 				if args.show:
 					vc.previewFrame()
 					# sleep( 0.03 )
-			else:	
+			elif args.function == 'lines':	
 				lineFrame, intersect = vc.findLines()
-				# shapeFrame = vc.findShapes()
 				vc.drawGrid( lineFrame )
 				if args.outfile:
 					vc.writeFrame( lineFrame )
 				if args.show:
 					vc.previewFrame( lineFrame )
-					
+					# sleep( 0.03 )
+			elif args.function == 'shapes':
+				shapeFrame = vc.findShapes()
+				vc.drawGrid( shapeFrame )
+				if args.outfile:
+					vc.writeFrame( shapeFrame )
+				if args.show:
+					vc.previewFrame( shapeFrame )
 					# sleep( 0.03 )
 			vc.saveFrameToBuf()
 			if args.framelimit and vc.frameCount >= args.framelimit:
