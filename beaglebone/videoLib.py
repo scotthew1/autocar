@@ -4,7 +4,7 @@
 import cv2
 import cv
 import numpy as np
-from collections import deque
+from collections import deque, defaultdict
 
 
 class FrameMeta:
@@ -168,10 +168,19 @@ class VideoCapture:
 		y = slope * x + yInt
 		x = (y - yInt) / slope
 		"""
-		y1 = 1000
-		y2 = -1000
-		x1 = int( (y1 - yInt) / slope )
-		x2 = int( (y2 - yInt) / slope )
+		try:
+			if slope < 1:
+				x1 = 1000
+				x2 = -1000
+				y1 = int( slope * x1 + yInt )
+				y2 = int( slope * x2 + yInt )
+			else:
+				y1 = 1000
+				y2 = -1000
+				x1 = int( (y1 - yInt) // slope )
+				x2 = int( (y2 - yInt) // slope )
+		except ValueError:
+			print "ValueError (slope, yInt):", slope, yInt
 
 		if frame is not None:
 			cv2.line( frame, (x1,y1), (x2,y2), color, 3 )
@@ -203,6 +212,25 @@ class VideoCapture:
 		slope = (sumXY - sumX * yMean) / (sumX2 - sumX * xMean)
 		yInt = yMean - slope * xMean
 		return slope, yInt
+
+	def getAvgHorizontals( self, horz ):
+		"""
+		Separates horizontal lines into bins and finds an average
+		line for each bin.
+		"""
+		bins = defaultdict( list )
+		for l in horz:
+			yAvg = ( l[1] + l[3] ) / 2
+			for key in bins:
+				if key-15 <= yAvg <= key+15:
+					bins[key].append( l )
+					break
+			else:
+				bins[yAvg].append( l )
+		out = []
+		for key in bins:
+			out.append( self.getBestFit( bins[key] ) )
+		return out
 
 	def getAvgLine( self, lines ):
 		outLine = [0, 0, 0, 0]
@@ -258,9 +286,8 @@ class VideoCapture:
 			for l in lines[0]:
 				# x1 = l[0]; y1 = l[1]; x2 = l[2]; y2 = l[3]
 				yRatio = l[1] / float(l[3])
-				if .7 <= yRatio <= 1.3:
+				if .8 <= yRatio <= 1.2:
 					# mostly horizontal
-					cv2.line( lineFrame, (l[0],l[1]), (l[2],l[3]), (0,0,255), 3 )
 					horz.append( l )
 				elif l[0] < midpoint and l[2] < midpoint:
 					# left side of the screen
@@ -276,6 +303,10 @@ class VideoCapture:
 			rSlope, rYInt = (None, None)
 			avgXIntersect = self.frameBuf.getAvgXIntersect()
 			# find average lines and line intersect
+			if len( horz ) > 0:
+				horzs = self.getAvgHorizontals( horz )
+				for line in horzs:
+					self.drawSlopeIntLine( line[0], line[1], (0,0,255), lineFrame )
 			if len( left ) > 0:
 				lSlope, lYInt = self.getBestFit( left )
 				self.drawSlopeIntLine( lSlope, lYInt, (0,255,0), lineFrame )
@@ -325,9 +356,9 @@ class VideoCapture:
 		####### Checks to see if we see enough green for there to be an arrow in the image
 		mask = greenmask.copy()
 		# Convert image to GrayScale
-		imgray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
-		ret,thresh1 = cv2.threshold(imgray,127,255,cv2.THRESH_BINARY)
-		cv2.inRange(thresh1,255,255,mask)
+		# imgray = cv2.cvtColor(greenmask,cv2.COLOR_BGR2GRAY)
+		# ret,thresh1 = cv2.threshold(imgray,127,255,cv2.THRESH_BINARY)
+		cv2.inRange(greenmask,255,255,mask)
 		#newmask = cv.fromarray(mask)
 		# Counts the number of non-zero values in the array 
 		whitecount = np.count_nonzero(mask)
