@@ -318,8 +318,8 @@ class VideoCapture:
 
 		#define range of Green - Kyle
 		# array( HUE, SATURATION, VALUE/BRIGHTNESS)
-		lower_green = np.array([90,30,20])
-		upper_green = np.array([140,100,100])
+		lower_green = np.array([45,85,65])
+		upper_green = np.array([70,255,255])
 
 		#Using greenmask to find everything within a range of green values
 		#and returning this to help find signs on the road
