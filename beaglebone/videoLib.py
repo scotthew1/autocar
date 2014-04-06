@@ -337,13 +337,7 @@ class VideoCapture:
 	def findShapes( self ):
 
 		# Convert BGR to HSV
-		self.hsv = cv2.cvtColor(self.currentFrame, cv2.COLOR_BGR2HSV)
-
-		#gray = cv2.cvtColor(self.currentFrame, cv.CV_RGB2GRAY)
-
-		#define range of yellow
-		#lower_green = np.array([50,50,50])
-		#upper_green = np.array([70,255,255])
+		hsv = cv2.cvtColor(self.currentFrame, cv2.COLOR_BGR2HSV)
 
 		#define range of Green - Kyle
 		# array( HUE, SATURATION, VALUE/BRIGHTNESS)
@@ -352,47 +346,13 @@ class VideoCapture:
 
 		#Using greenmask to find everything within a range of green values
 		#and returning this to help find signs on the road
-		greenmask = cv2.inRange(self.hsv, lower_green, upper_green)
-		####### Checks to see if we see enough green for there to be an arrow in the image
-		mask = greenmask.copy()
-		# Convert image to GrayScale
-		# imgray = cv2.cvtColor(greenmask,cv2.COLOR_BGR2GRAY)
-		# ret,thresh1 = cv2.threshold(imgray,127,255,cv2.THRESH_BINARY)
-		cv2.inRange(greenmask,255,255,mask)
-		#newmask = cv.fromarray(mask)
+		greenmask = cv2.inRange(hsv, lower_green, upper_green)
+		# Checks to see if we see enough green for there to be an arrow in the image
 		# Counts the number of non-zero values in the array 
-		whitecount = np.count_nonzero(mask)
+		whitecount = np.count_nonzero(greenmask)
 		print whitecount
 		if whitecount >= 15000:
 			print "I see an arrow"
-		#ret, thresh = cv2.threshold( gray, 127, 255, 1 )
-		#contours, h = cv2.findContours( thresh, 1, 2 )
-
-		#avgContors = 0
-		
-		#print "there are " + str(len(contours)) + " contours."
-		# update contour average
-		#avgContors = ( len(contours) + self.frameCount*avgContors ) / (self.frameCount + 1)
-
-		#for cnt in contours:
-			#print "contour"
-			#print cnt
-			#approx = cv2.approxPolyDP( cnt, 0.01*cv2.arcLength(cnt,True), True )
-			#approx = len(cnt)
-			#print "approx"
-			#print approx
-			#if len(approx) != len(cnt):
-				#print "len(cnt) = " + str(len(cnt)) + ", len(approx) = " + str(len(approx))
-			
-			#if len(approx) == 3:
-			 	#print "triangle"
-			 	#cv2.drawContours( frame, [cnt], 0, (0,255,0), -1 )
-			#elif len(approx) == 4:
-			 	#print "square"
-			 	#cv2.drawContours( frame, [cnt], 0, (0,0,255), -1 )
-			#elif len(approx) == 8:
-			 	#print "octagon"
-			 	#cv2.drawContours( frame, [cnt], 0, (255,255,0), -1 )
 
 		return greenmask
 
