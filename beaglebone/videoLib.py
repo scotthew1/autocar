@@ -322,7 +322,18 @@ class VideoCapture:
 		#Using greenmask to find everything within a range of green values
 		#and returning this to help find signs on the road
 		greenmask = cv2.inRange(self.hsv, lower_green, upper_green)
-
+		####### Checks to see if we see enough green for there to be an arrow in the image
+		mask = greenmask.copy()
+		# Convert image to GrayScale
+		imgray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
+		ret,thresh1 = cv2.threshold(imgray,127,255,cv2.THRESH_BINARY)
+		cv2.inRange(thresh1,255,255,mask)
+		#newmask = cv.fromarray(mask)
+		# Counts the number of non-zero values in the array 
+		whitecount = np.count_nonzero(mask)
+		print whitecount
+		if whitecount >= 15000:
+			print "I see an arrow"
 		#ret, thresh = cv2.threshold( gray, 127, 255, 1 )
 		#contours, h = cv2.findContours( thresh, 1, 2 )
 
