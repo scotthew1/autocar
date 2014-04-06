@@ -351,8 +351,17 @@ class VideoCapture:
 		# Counts the number of non-zero values in the array 
 		whitecount = np.count_nonzero(greenmask)
 		print whitecount
-		if whitecount >= 15000:
+		if whitecount >= 300:
 			print "I see an arrow"
+		img = self.currentFrame
+		gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+		corners = cv2.goodFeaturesToTrack(gray,7,0.01,10)
+		print corners
+		corners = np.int0(corners)
+
+		for i in corners:
+			x,y = i.ravel()
+			cv2.circle(img,(x,y),3,255,-1)
 
 		return greenmask
 
