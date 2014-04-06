@@ -2,7 +2,7 @@
 # be interpreted by the Arduino so that the robot can perform
 # the commands sent by the BeagleBone.
 
-from bbio import *  #for when the beaglebone is hooked up
+from bbio import *
 
 # comment this out when not demoing
 DEMO = False
@@ -68,7 +68,6 @@ def test():
 	"""
 	global lastCall
 	command = 't' + '000'
-	print 'send command: %s' % command
 	Serial2.write( command )
 	delay( delayAfterWrite )
 	lastCall = 't'
@@ -187,9 +186,10 @@ def reverse( speed ):
 	lastCall = 'h'
 	if DEMO: readAndCheck()
 
-def nudge( motor, nudgeTime=5 ):
+def nudge( motor, nudgeTime=2 ):
 	"""
 	Nudges the car slight left or right depending on the motor selected.
+	nudgeTime is multiplied by 20ms on the arduino
 	"""
 	global lastCall
 	if nudgeTime < 1 or nudgeTime > 9:
@@ -201,6 +201,22 @@ def nudge( motor, nudgeTime=5 ):
 	delay( delayAfterWrite )
 	lastCall = 'n'
 	if DEMO: readAndCheck()
+
+def checkBattery():
+	"""
+	Checks the power status of the battery used by the arduino and matrix controller.
+	"""
+	global lastCall
+	command = 'q' + '000'
+	Serial2.write( command )
+	delay( delayAfterWrite )
+	lastCall = 'q'
+	msg = read()
+	ack = getLastAck()
+	if msg[:4] == ack and len(msg) == 8:
+		return int( msg[5] )
+	else:
+		return None
 
 def obj_det( speed ):
 	"""
