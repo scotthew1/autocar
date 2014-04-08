@@ -9,13 +9,13 @@ import commandLib as cl
 nudgeHold = 10
 
 def mainLoop():
-	vc = VideoCapture( outfile="sample_video/nudge_movement_imp.avi" )
+	vc = VideoCapture( outfile="sample_video/nudge_movement_stop.avi" )
 	lastNudge = 0
 
 	intersect = None
 	print "startup loop"
 	while vc.frameBuf.size() < 5 and vc.captureFrame():
-		frame, intersect = vc.findLines()
+		frame, intersect, horz = vc.findLines()
 		vc.drawGrid( frame )
 		vc.writeFrame( frame )
 		if intersect:
@@ -31,10 +31,22 @@ def mainLoop():
 		print "start received!"
 
 	# t0 = time.time()
-	while vc.captureFrame() and vc.frameCount < 100:
-		frame, intersect = vc.findLines()
+	while vc.captureFrame() and vc.frameCount < 150:
+		frame, intersect, horz = vc.findLines()
 		nudgeMotor = None
 		nudgeTime  = None
+		mustStop = False
+		for line in horz:
+			# print "horz:", line
+			if line[0] > vc.height-50 and line[1] == 255:
+				print "can't continue, gotta stop"
+				mustStop = True
+				break
+		if mustStop:
+			vc.drawGrid( frame )
+			vc.writeFrame( frame )
+			vc.saveFrameToBuf()
+			break
 		if intersect and vc.frameCount >= (lastNudge+15):
 			if intersect > (vc.width/2 + 60):
 				print "BIGGER NUDGE M2!!"
@@ -79,15 +91,6 @@ def mainLoop():
 		vc.writeFrame( frame )
 		vc.saveFrameToBuf()
 
-
-	# t1 = time.time()
-	# tt = t1 - t0
-	
-	# print "frames: %d" % vc.frameCount
-	# print "time: %f" % tt
-	# print "fps: %f" % (vc.frameCount/tt)
-
-	# delay( 7000 )
 	print "sending stop"
 	cl.flush()
 	cl.stop()
@@ -95,6 +98,15 @@ def mainLoop():
 		print "stop not received D="
 	else:
 		print "stop received!"
+
+	# get a few final frames
+	print "get a few more frames"
+	marker = vc.frameCount + 10
+	while vc.captureFrame() and vc.frameCount < marker:
+		frame, intersect, horz = vc.findLines()
+		vc.drawGrid( frame )
+		vc.writeFrame( frame )
+		vc.saveFrameToBuf()
 
 def simpleNudgeTest():
 	print "sending start"
