@@ -352,6 +352,7 @@ class VideoCapture:
 	# TODO: put into a working state
 	def findShapes( self ):
 
+		xCount = 0
 		# Convert BGR to HSV
 		hsv = cv2.cvtColor(self.currentFrame, cv2.COLOR_BGR2HSV)
 
@@ -374,6 +375,43 @@ class VideoCapture:
 		gray = cv2.cvtColor(crop,cv2.COLOR_BGR2GRAY)
 		corners = cv2.goodFeaturesToTrack(gray,7,0.01,10)
 		corners = np.int0(corners)
+
+		#find max and min x & y values
+		xCoor = list()
+		yCoor = list()
+		for i in range(len(corners)):
+			xCoor.append(int(corners[i][0][0]))
+			yCoor.append(int(corners[i][0][1]))
+		yCoorSorted = sorted(yCoor)
+		xCoorSorted = sorted(xCoor)
+		#print "xCoor: " + str(xCoor)
+		#find length of list, then find value of 0
+		# and max index then subtract to find length
+		yMaxIndex = (len(yCoorSorted) - 1)
+		xMaxIndex = (len(xCoorSorted) - 1)
+		yValue = yCoorSorted[yMaxIndex] - yCoorSorted[0]
+		xValue = xCoorSorted[xMaxIndex] - xCoorSorted[0]
+		halfxVal = xValue/2
+		testTip = (halfxVal + xCoorSorted[0])
+
+		#print "testTip: " + str(testTip)
+		for j in range(len(xCoor)):
+			if ((xCoorSorted[xMaxIndex] - xCoorSorted[xMaxIndex-1]) <= 5):
+				print "Left Arrow"
+			elif((xCoorSorted[1] - xCoorSorted[0]) <= 5):
+				print"Right Arrow"
+			elif ((testTip > xCoorSorted[j]) and (testTip < xCoorSorted[j+1])):
+				xValue = xCoorSorted[j+1]
+				#print "xValue: " + str(xValue)
+				for k in range(len(xCoor)):
+					if xValue == xCoor[k]:
+						vertTip = yCoor[k]
+						#print "vertTip: " + str(vertTip)
+						#print "yCoor: " + str(yCoor)
+						if ((vertTip == yCoorSorted[yMaxIndex]) or ((yCoorSorted[1] - yCoorSorted[0]) <= 5)):
+								print "Down Arrow"
+						elif ((vertTip == yCoorSorted[0]) or ((yCoorSorted[yMaxIndex] - yCoorSorted[yMaxIndex-1]) <= 5)):
+								print "Up Arrow"
 		#num = 0
 		#if num < 1:
 		#	cv2.imwrite("thumbnail.jpg", img)
@@ -381,7 +419,7 @@ class VideoCapture:
 			x,y = i.ravel()
 			cv2.circle(gray,(x,y),3,255,-1)
 
-		return gray
+		return self.currentFrame
 
 
 if __name__ == "__main__":
