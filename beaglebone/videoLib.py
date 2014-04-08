@@ -190,6 +190,14 @@ class VideoCapture:
 		else:
 			raise Exception( "No frame." )
 
+	def drawHorizontalLine( self, yVal, color, frame=None ):
+		if frame is not None:
+			cv2.line( frame, (-1000,yVal), (1000,yVal), color, 3 )
+		elif currentFrame is not None:
+			cv2.line( self.currentFrame, (-1000,yVal), (1000,yVal), color, 3 )
+		else:
+			raise Exception( "No frame." )
+
 
 	# math functions
 	def get2PointSlope( self, line ):
@@ -197,7 +205,7 @@ class VideoCapture:
 		if div == 0:
 			return 10000
 		else:
-			return ( line[3] - line[1] ) / div
+			return ( line[3] - line[1] ) / float(div)
 
 	def getBestFit( self, lines ):
 		"""
@@ -222,11 +230,11 @@ class VideoCapture:
 		if div == 0:
 			slope = 10000
 		else:
-			slope = (sumXY - sumX * yMean) / div
+			slope = (sumXY - sumX * yMean) / float(div)
 		yInt = yMean - slope * xMean
 		return slope, yInt
 
-	def getAvgHorizontals( self, horz ):
+	def getAvgHorizontals( self, horz, drawFrame ):
 		"""
 		Separates horizontal lines into bins and finds an average
 		line for each bin.
@@ -235,14 +243,15 @@ class VideoCapture:
 		for l in horz:
 			yAvg = ( l[1] + l[3] ) / 2
 			for key in bins:
-				if key-15 <= yAvg <= key+15:
+				if key-20 <= yAvg <= key+20:
 					bins[key].append( l )
 					break
 			else:
 				bins[yAvg].append( l )
 		out = []
 		for key in bins:
-			out.append( self.getBestFit( bins[key] ) )
+			line = self.getBestFit( bins[key] )
+			out.append( line )
 		return out
 
 	def getAvgLine( self, lines ):
@@ -282,16 +291,92 @@ class VideoCapture:
 		x = int( ( i2 - i1 ) / ( s1 - s2 ) )
 		return x
 
+
 	# image processing functions
+	def findGaps( self, frame, slope, yInt ):
+		if slope == 0:
+			print "error: zero slope"
+			return False
+		lastBit = 1
+		out = []
+		for y in range( 0, self.height, 4 ):
+			x = int( (y - yInt) // slope )
+			if x >= self.width:
+				continue
+			if frame[y][x] != lastBit:
+				out.append( (x,y) )
+				lastBit = frame[y][x]
+		return out
+
+	def checkHorizontal( self, frame, yHorz, slope, yInt ):
+		if slope == 0:
+			print "error: zero slope"
+			return False
+		yHorz = int(yHorz)
+		y1 = yHorz + 10
+		y2 = yHorz - 10
+		x1 = int( (y1 - yInt) // slope )
+		x2 = int( (y2 - yInt) // slope )
+		if y1 >= self.height or y2 < 0 or x1 >= self.width or x2 < 0:
+			print "error, check points out of range"
+			return [0]
+		# get points above and below horz
+		above = frame[y1][x1]
+		below = frame[y2][x2]
+		# find where the line intersects the horz for return
+		x = int( (yHorz - yInt) // slope )
+		if below and not above:
+			print "road above horz"
+			return [1, x, yHorz]
+		elif above and not below:
+			print "road below horz"
+			return [2, x, yHorz]
+		else:
+			return [0]
+
+	def checkPointOnLine( self, frame, slope, yInt, x=None, y=None ):
+		"""
+		Finds a point on a line given x or y, then checks this point
+		and 2 points near it on the frame. 
+		Returns the sum of these 3 points or False on error.
+		"""
+		if not (x or y):
+			print "error: you must provide x or y to check."
+			return False
+		elif x and not y:
+			y = slope * x + yInt
+			if not ( 0 <= x < self.width ) or not ( 2 <= y < self.height-2 ):
+				print "error: point is not in frame."
+				return False
+			return frame[y][x] | frame[y+2][x] | frame[y-2][x]
+		elif y and not x: 
+			if not slope:
+				print "error: slope must be a non-zero number."
+				return false
+			x = (y - yInt) / slope
+			if not ( 2 <= x < self.width-2 ) or not ( 0 <= y < self.height ):
+				print "error: point is not in frame."
+				return False
+			return frame[y][x] | frame[y][x+2] | frame[y][x-2]
+		else:
+			return False
+
 	def findLines( self ):
 		if self.currentFrame is None:
 			raise Exception( "No frame to process." )
+
+		# these are the output variables
+		lineFrame = self.currentFrame.copy()
+		avgXIntersect = None
+		outHorz = []
+
+		# opencv time, do the filtering and find lines
 		gray  = cv2.cvtColor( self.currentFrame, cv.CV_RGB2GRAY )
 		ret, thresh = cv2.threshold( gray, 200, 255, cv2.THRESH_BINARY )
 		edges = cv2.Canny( thresh, 50, 100 )
-		lines = cv2.HoughLinesP( edges, 1, np.pi/180, 40, maxLineGap=10 )
-		lineFrame = self.currentFrame.copy()
-		avgXIntersect = None
+		lines = cv2.HoughLinesP( edges, 1, np.pi/180, 30, maxLineGap=10 )
+		
+		# loop through the lines and separate them 
 		if lines is not None:
 			( horz, left, right ) = [], [], []
 			# loop through all lines found
@@ -299,59 +384,95 @@ class VideoCapture:
 			for l in lines[0]:
 				# check the slope to see if the line is horizontal
 				slope = self.get2PointSlope( l )
-				if  -0.3 <= slope <= 0.3:
+				if slope == 10000:
+					# rogue line, we don't care about
+					pass
+				elif  -0.3 <= slope <= 0.3:
 					# mostly horizontal
 					horz.append( l )
-				elif l[0] < midpoint and l[2] < midpoint:
+				elif l[0] < midpoint and l[2] < midpoint and slope <= -1:
 					# left side of the screen
 					left.append( l )
-				elif l[0] > midpoint and l[2] > midpoint:
+				elif l[0] > midpoint and l[2] > midpoint and slope >= 1:
 					# right side of the screen
 					right.append( l )
 				else:
 					# don't know
+					print "unknown line:", l
+					print "slope:", slope
 					cv2.line( lineFrame, (l[0],l[1]), (l[2],l[3]), (0,255,255), 3 )
 
 			lSlope, lYInt = (None, None)
 			rSlope, rYInt = (None, None)
 			avgXIntersect = self.frameBuf.getAvgXIntersect()
-			# find average lines and line intersect
-			if len( horz ) > 0:
-				ptSlopeHorz = self.getAvgHorizontals( horz )
-				horz = []
-				for line in ptSlopeHorz:
-					horz.append( int(line[1]) )
-					self.drawSlopeIntLine( line[0], line[1], (0,0,255), lineFrame )
-				print horz
+			# find average vertical lines and line intersect
 			if len( left ) > 0:
 				lSlope, lYInt = self.getBestFit( left )
 				self.drawSlopeIntLine( lSlope, lYInt, (0,255,0), lineFrame )
+				# gapPnts = self.findGaps( thresh, lSlope, lYInt )
+				# for x, y in gapPnts:
+				# 	cv2.circle( lineFrame, (x, y), 4, (0,255,255) )
 			if len( right ) > 0:
 				rSlope, rYInt = self.getBestFit( right )
 				self.drawSlopeIntLine( rSlope, rYInt, (255,0,0), lineFrame )
+				# gapPnts = self.findGaps( thresh, rSlope, rYInt )
+				# for x, y in gapPnts:
+				# 	cv2.circle( lineFrame, (x, y), 4, (0,255,255) )
 			if lSlope and rSlope:
 				x = self.getXIntesectFromSlopeInt( lSlope, lYInt, rSlope, rYInt )
 				self.currentMeta.xIntersect = x
 				avgXIntersect = self.frameBuf.newAvgXIntersect( x )
 				cv2.putText( lineFrame, "x: %d" % avgXIntersect, (10,15), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,255,255) )
 				cv2.circle( lineFrame, (avgXIntersect, self.height/2), 4, (0,255,255) )
-			elif avgXIntersect is not None:
+			elif avgXIntersect:
 				cv2.putText( lineFrame, "x: %d" % avgXIntersect, (10,15), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,255,255) )
 				cv2.circle( lineFrame, (avgXIntersect, self.height/2), 4, (0,255,255) )
+			
+			# do horizontal line shit
+			yHorz = []
+			if len( horz ) > 0:
+				ptSlopeHorz = self.getAvgHorizontals( horz, lineFrame )
+				ptSlopeHorz.sort(key=lambda tup: tup[1])
+				for i in range( len(ptSlopeHorz) ):
+					hSlope, hYInt = ptSlopeHorz[i]
+					# self.drawHorizontalLine( y, (0,0,255), lineFrame )
+					self.drawSlopeIntLine( hSlope, hYInt, (0,0,255), lineFrame )
+					# check to see if we can cross the line
+					pnt = self.checkPointOnLine( thresh, hSlope, hYInt, x=self.width/2 )
+					if pnt == False:
+						# an error occurred
+						pass
+					if pnt == 255:
+						cv2.circle( lineFrame, (self.width/2, int(hYInt)), 3, (0,0,255), 3 )
+					elif pnt == 0:
+						cv2.circle( lineFrame, (self.width/2, int(hYInt)), 3, (0,255,0), 3 )
+					outHorz.append( ( hYInt, pnt ) )
+					# check for roads near horz
+					# if lSlope:
+					# 	res = self.checkHorizontal( thresh, line[1], lSlope, lYInt )
+					# 	if res[0] == 1:
+					# 		cv2.circle( lineFrame, (res[1], res[2]), 3, (0,255,255), 3 )
+					# 	elif res[0] == 2:
+					# 		cv2.circle( lineFrame, (res[1], res[2]), 3, (255,0,255), 3 )
+					# if rSlope:
+					# 	res = self.checkHorizontal( thresh, line[1], rSlope, rYInt )
+					# 	if res[0] == 1:
+					# 		cv2.circle( lineFrame, (res[1], res[2]), 3, (0,255,255), 3 )
+					# 	elif res[0] == 2:
+					# 		cv2.circle( lineFrame, (res[1], res[2]), 3, (255,0,255), 3 )
+			
+			# save frame metadata
 			self.currentMeta.llSlope = lSlope
 			self.currentMeta.llYInt  = lYInt
 			self.currentMeta.rlSlope = rSlope
 			self.currentMeta.rlYInt  = rYInt
-			self.currentMeta.horizLines = horz
+			self.currentMeta.horizLines = yHorz
 		else:
 			print "no lines detected"
 
-		return lineFrame, avgXIntersect
+		return lineFrame, avgXIntersect, outHorz
 
-
-	# TODO: put into a working state
 	def findShapes( self ):
-
 		xCount = 0
 		# Convert BGR to HSV
 		hsv = cv2.cvtColor(self.currentFrame, cv2.COLOR_BGR2HSV)
@@ -419,7 +540,7 @@ class VideoCapture:
 			x,y = i.ravel()
 			cv2.circle(gray,(x,y),3,255,-1)
 
-		return self.currentFrame
+		return greenmask
 
 
 if __name__ == "__main__":
@@ -453,7 +574,7 @@ if __name__ == "__main__":
 					vc.previewFrame()
 					# sleep( 0.03 )
 			elif args.function == 'lines':	
-				lineFrame, intersect = vc.findLines()
+				lineFrame, intersect, horz = vc.findLines()
 				vc.drawGrid( lineFrame )
 				if args.outfile:
 					vc.writeFrame( lineFrame )
