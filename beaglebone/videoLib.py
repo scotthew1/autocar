@@ -355,7 +355,6 @@ class VideoCapture:
 		xCount = 0
 		# Convert BGR to HSV
 		hsv = cv2.cvtColor(self.currentFrame, cv2.COLOR_BGR2HSV)
-
 		#define range of GREEN 
 		# array( HUE, SATURATION, VALUE/BRIGHTNESS)
 		lower_green = np.array([45,85,65])
