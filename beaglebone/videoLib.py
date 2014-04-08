@@ -356,68 +356,84 @@ class VideoCapture:
 		# Convert BGR to HSV
 		hsv = cv2.cvtColor(self.currentFrame, cv2.COLOR_BGR2HSV)
 
-		#define range of Green - Kyle
+		#define range of GREEN 
 		# array( HUE, SATURATION, VALUE/BRIGHTNESS)
 		lower_green = np.array([45,85,65])
 		upper_green = np.array([70,255,255])
-
-		#Using greenmask to find everything within a range of green values
+		#define range of RED - Kyle
+		lower_red = np.array([0,0,0])
+		upper_red = np.array([190,255,255])
+		#define range of BLUE
+		lower_blue = np.array([110,50,50])
+		upper_blue = np.array([130,255,255])
+		#Using greenmask to find everything within a range of the given values
 		#and returning this to help find signs on the road
 		greenmask = cv2.inRange(hsv, lower_green, upper_green)
-		edges = cv2.Canny( greenmask, 50, 100 )
+		redmask = cv2.inRange(hsv, lower_red, upper_red)
+		bluemask = cv2.inRange(hsv, lower_blue, upper_blue)
+		# edges = cv2.Canny( greenmask, 50, 100 )
 		# Checks to see if we see enough green for there to be an arrow in the image
 		# Counts the number of non-zero values in the array 
-		whitecount = np.count_nonzero(greenmask)
-		# if whitecount >= 300:
-		# 	print "I see an arrow"
-		img = self.currentFrame
-		crop = img[100:200, 100:260]
-		gray = cv2.cvtColor(crop,cv2.COLOR_BGR2GRAY)
-		corners = cv2.goodFeaturesToTrack(gray,7,0.01,10)
-		corners = np.int0(corners)
+		greencount = np.count_nonzero(greenmask)
+		redcount = 0
+		bluecount = 0
+		if redcount >= 400
+			print "red detected"
+		elif bluecount >= 400
+			#destination has been reached
+			# stop function
+			# LED light show?
+			print "blue detected"
+		elif greencount >= 300:
+			#print "I see an arrow"
+			img = self.currentFrame
+			crop = img[100:200, 100:260]
+			gray = cv2.cvtColor(crop,cv2.COLOR_BGR2GRAY)
+			corners = cv2.goodFeaturesToTrack(gray,7,0.01,10)
+			corners = np.int0(corners)
 
-		#find max and min x & y values
-		xCoor = list()
-		yCoor = list()
-		for i in range(len(corners)):
-			xCoor.append(int(corners[i][0][0]))
-			yCoor.append(int(corners[i][0][1]))
-		yCoorSorted = sorted(yCoor)
-		xCoorSorted = sorted(xCoor)
-		#print "xCoor: " + str(xCoor)
-		#find length of list, then find value of 0
-		# and max index then subtract to find length
-		yMaxIndex = (len(yCoorSorted) - 1)
-		xMaxIndex = (len(xCoorSorted) - 1)
-		yValue = yCoorSorted[yMaxIndex] - yCoorSorted[0]
-		xValue = xCoorSorted[xMaxIndex] - xCoorSorted[0]
-		halfxVal = xValue/2
-		testTip = (halfxVal + xCoorSorted[0])
+			#find max and min x & y values
+			xCoor = list()
+			yCoor = list()
+			for i in range(len(corners)):
+				xCoor.append(int(corners[i][0][0]))
+				yCoor.append(int(corners[i][0][1]))
+			yCoorSorted = sorted(yCoor)
+			xCoorSorted = sorted(xCoor)
+			#print "xCoor: " + str(xCoor)
+			#find length of list, then find value of 0
+			# and max index then subtract to find length
+			yMaxIndex = (len(yCoorSorted) - 1)
+			xMaxIndex = (len(xCoorSorted) - 1)
+			yValue = yCoorSorted[yMaxIndex] - yCoorSorted[0]
+			xValue = xCoorSorted[xMaxIndex] - xCoorSorted[0]
+			halfxVal = xValue/2
+			testTip = (halfxVal + xCoorSorted[0])
 
-		#print "testTip: " + str(testTip)
-		for j in range(len(xCoor)):
-			if ((xCoorSorted[xMaxIndex] - xCoorSorted[xMaxIndex-1]) <= 5):
-				print "Left Arrow"
-			elif((xCoorSorted[1] - xCoorSorted[0]) <= 5):
-				print"Right Arrow"
-			elif ((testTip > xCoorSorted[j]) and (testTip < xCoorSorted[j+1])):
-				xValue = xCoorSorted[j+1]
-				#print "xValue: " + str(xValue)
-				for k in range(len(xCoor)):
-					if xValue == xCoor[k]:
-						vertTip = yCoor[k]
-						#print "vertTip: " + str(vertTip)
-						#print "yCoor: " + str(yCoor)
-						if ((vertTip == yCoorSorted[yMaxIndex]) or ((yCoorSorted[1] - yCoorSorted[0]) <= 5)):
-								print "Down Arrow"
-						elif ((vertTip == yCoorSorted[0]) or ((yCoorSorted[yMaxIndex] - yCoorSorted[yMaxIndex-1]) <= 5)):
-								print "Up Arrow"
-		#num = 0
-		#if num < 1:
-		#	cv2.imwrite("thumbnail.jpg", img)
-		for i in corners:
-			x,y = i.ravel()
-			cv2.circle(gray,(x,y),3,255,-1)
+			#print "testTip: " + str(testTip)
+			for j in range(len(xCoor)):
+				if ((xCoorSorted[xMaxIndex] - xCoorSorted[xMaxIndex-1]) <= 5):
+					print "Left Arrow"
+				elif((xCoorSorted[1] - xCoorSorted[0]) <= 5):
+					print"Right Arrow"
+				elif ((testTip > xCoorSorted[j]) and (testTip < xCoorSorted[j+1])):
+					xValue = xCoorSorted[j+1]
+					#print "xValue: " + str(xValue)
+					for k in range(len(xCoor)):
+						if xValue == xCoor[k]:
+							vertTip = yCoor[k]
+							#print "vertTip: " + str(vertTip)
+							#print "yCoor: " + str(yCoor)
+							if ((vertTip == yCoorSorted[yMaxIndex]) or ((yCoorSorted[1] - yCoorSorted[0]) <= 5)):
+									print "Down Arrow"
+							elif ((vertTip == yCoorSorted[0]) or ((yCoorSorted[yMaxIndex] - yCoorSorted[yMaxIndex-1]) <= 5)):
+									print "Up Arrow"
+			#num = 0
+			#if num < 1:
+			#	cv2.imwrite("thumbnail.jpg", img)
+			for i in corners:
+				x,y = i.ravel()
+				cv2.circle(gray,(x,y),3,255,-1)
 
 		return self.currentFrame
 
