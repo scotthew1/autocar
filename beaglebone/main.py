@@ -16,15 +16,17 @@ def forwardMovement():
 	intersect = None
 	while vc.captureFrame():
 		frame, intersect, horz = vc.findLines()
+		vc.drawGrid( frame )
+		vc.writeFrame( frame )
+		vc.saveFrameToBuf()
+
+		vc.frameBuf.printHorzDiff()
+
 		nudgeMotor = None
 		nudgeTime  = None
-		mustStop = False
 		for line in horz:
 			if line[0] > vc.height-45 and line[1] == 255:
 				Log.debug( "can't continue, gotta stop" )
-				vc.drawGrid( frame )
-				vc.writeFrame( frame )
-				vc.saveFrameToBuf()
 				return
 		if intersect and vc.frameCount >= (lastNudge+15):
 			if intersect > (vc.width/2 + 60):
@@ -60,9 +62,6 @@ def forwardMovement():
 			else:
 				Log.info( "nudge %s, %d received!" % (nudgeMotor, nudgeTime) )
 				lastNudge = vc.frameCount
-		vc.drawGrid( frame )
-		vc.writeFrame( frame )
-		vc.saveFrameToBuf()
 
 def mainLoop():
 	global nextTurn
@@ -93,7 +92,7 @@ def mainLoop():
 		cl.stop()
 		if not cl.readAndCheck():
 			Log.warning( "stop not received D=" )
-			else:
+		else:
 			Log.info( "stop received!" )
 
 		# now we gotta turn
@@ -103,7 +102,7 @@ def mainLoop():
 			cl.turnLeft()
 			if not cl.readAndCheck():
 				Log.warning( "turn not received D=" )
-				else:
+			else:
 				Log.info( "turn received!" )
 
 		# delay for turn and clear that buffer
@@ -141,10 +140,10 @@ if __name__ == '__main__':
 
 	# log uncaught exceptions
 	# thanks http://stackoverflow.com/a/8054179
-	def logException( type, value, tb ):
-		Log.exception( "Uncaught exception: {0}".format( str(value) ), exc_info=True )
+	# def logException( type, value, tb ):
+	# 	Log.exception( "Uncaught exception: {0}".format( str(value) ), exc_info=True )
 	
-	sys.excepthook = logException
+	# sys.excepthook = logException
 
 	vc = VideoCapture( outfile=args.outfile, fourcc=args.fourcc )
 	cl.setup()
@@ -157,4 +156,4 @@ if __name__ == '__main__':
 	except KeyboardInterrupt:
 		Log.info( "we're done here" )
 
-	vc.cleanup()
+	vc.cleanUp()
