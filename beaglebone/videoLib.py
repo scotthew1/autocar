@@ -22,7 +22,7 @@ class FrameMeta:
 
 class FrameBuffer:
 
-	def __init__( self, maxLen=10 ):
+	def __init__( self, maxLen=5 ):
 		self.buffer = deque( maxlen=maxLen )
 
 	def append( self, frame ):
@@ -30,6 +30,9 @@ class FrameBuffer:
 
 	def size( self ):
 		return len( self.buffer )
+
+	def clear( self ):
+		self.buffer.clear()
 
 	def getAvgXIntersect( self ):
 		intersects = [ frame.xIntersect for frame in self.buffer if frame.xIntersect ]
@@ -497,9 +500,9 @@ class VideoCapture:
 		greencount = np.count_nonzero(greenmask)
 		redcount = 0
 		bluecount = 0
-		if redcount >= 400
+		if redcount >= 400:
 			print "red detected"
-		elif bluecount >= 400
+		elif bluecount >= 400:
 			#destination has been reached
 			# stop function
 			# LED light show?

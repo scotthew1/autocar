@@ -102,7 +102,7 @@ def start( speed ):
 	lastCall = 'b'
 	if DEMO: readAndCheck()
 
-def leftTurn():
+def turnLeft():
 	"""
 	Turn the car left 90 degrees
 	"""
@@ -113,7 +113,7 @@ def leftTurn():
 	lastCall = 'c'
 	if DEMO: readAndCheck()
 
-def rightTurn():
+def turnRight():
 	"""
 	Turn the car right 90 degrees
 	"""
