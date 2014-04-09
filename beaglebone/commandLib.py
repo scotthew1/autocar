@@ -3,6 +3,7 @@
 # the commands sent by the BeagleBone.
 
 from bbio import *
+import logging as Log
 
 # comment this out when not demoing
 DEMO = False
@@ -17,7 +18,7 @@ def setup():
 	Set up the UART communication to baud rate 9600
 	"""
 	Serial2.begin(9600)
-	print "setup"
+	Log.info( "Setup completed." )
 
 def flush():
 	"""
@@ -56,10 +57,10 @@ def readAndCheck():
 	if not msg or not ack:
 		return None
 	elif msg == ack:
-		if DEMO: print "message received! " + msg
+		if DEMO: Log.info( "message received! " + msg )
 		return True
 	else:
-		print "unexpected acknowledgment: " + msg
+		Log.warning( "unexpected acknowledgment: " + msg )
 		return False
 
 def test():
