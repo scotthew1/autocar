@@ -5,6 +5,7 @@ import cv2
 import cv
 import numpy as np
 from collections import deque, defaultdict
+import logging as Log 
 
 
 class FrameMeta:
@@ -57,7 +58,7 @@ class VideoCapture:
 	currentMeta = None
 
 	def __init__( self, infile=None, outfile=None, fourcc="XVID", preview=False ):
-		print "opening videoCapture"
+		Log.info( "opening videoCapture" )
 		if infile:
 			# capture from input file
 			self.capture = cv2.VideoCapture( args.infile )
@@ -65,7 +66,7 @@ class VideoCapture:
 				raise Exception( "Could not open input file: %s" % infile )
 		else:
 			# capture from default camera
-			print "connecting to camera"
+			Log.info( "connecting to camera" )
 			self.capture = cv2.VideoCapture(0)
 			self.capture.set(cv.CV_CAP_PROP_FRAME_WIDTH, 340)
 			self.capture.set(cv.CV_CAP_PROP_FRAME_HEIGHT, 240)
@@ -73,21 +74,21 @@ class VideoCapture:
 			if not self.capture.isOpened():
 				raise Exception( "Could not connect to camera." )
 
-		print "reading test frame"
+		Log.info( "reading test frame" )
 		if not self.captureFrame():
 			raise Exception( "Could not read from video source." )
 
 		self.width = np.size( self.currentFrame, 1 )
 		self.height = np.size( self.currentFrame, 0 )
-		print "width: " + str( self.width )
-		print "height: " + str( self.height )
+		Log.info( "width: " + str( self.width ) )
+		Log.info( "height: " + str( self.height ) )
 
 		# clear out test frame
 		self.frameCount = 0
 		self.currentFrame = None
 
 		if outfile:
-			print "opening videoWriter"
+			Log.info( "opening videoWriter" )
 			f = fourcc
 			fourcc = cv.CV_FOURCC( f[0], f[1], f[2], f[3] )
 			self.writer = cv2.VideoWriter( outfile, fourcc, 20.0, (self.width,self.height) )
@@ -183,12 +184,12 @@ class VideoCapture:
 				x1 = int( (y1 - yInt) // slope )
 				x2 = int( (y2 - yInt) // slope )
 		except ValueError:
-			print "ValueError (slope, yInt):", slope, yInt
+			Log.error( "ValueError (slope, yInt): %0.4f, %0.4f" % slope, yInt )
 			return
 
 		if frame is not None:
 			cv2.line( frame, (x1,y1), (x2,y2), color, 3 )
-		elif currentFrame is not None:
+		elif self.currentFrame is not None:
 			cv2.line( self.currentFrame, (x1,y1), (x2,y2), color, 3 )
 		else:
 			raise Exception( "No frame." )
@@ -196,7 +197,7 @@ class VideoCapture:
 	def drawHorizontalLine( self, yVal, color, frame=None ):
 		if frame is not None:
 			cv2.line( frame, (-1000,yVal), (1000,yVal), color, 3 )
-		elif currentFrame is not None:
+		elif self.currentFrame is not None:
 			cv2.line( self.currentFrame, (-1000,yVal), (1000,yVal), color, 3 )
 		else:
 			raise Exception( "No frame." )
@@ -298,7 +299,7 @@ class VideoCapture:
 	# image processing functions
 	def findGaps( self, frame, slope, yInt ):
 		if slope == 0:
-			print "error: zero slope"
+			Log.error( "zero slope" )
 			return False
 		lastBit = 1
 		out = []
@@ -313,7 +314,7 @@ class VideoCapture:
 
 	def checkHorizontal( self, frame, yHorz, slope, yInt ):
 		if slope == 0:
-			print "error: zero slope"
+			Log.error( "zero slope" )
 			return False
 		yHorz = int(yHorz)
 		y1 = yHorz + 10
@@ -321,7 +322,7 @@ class VideoCapture:
 		x1 = int( (y1 - yInt) // slope )
 		x2 = int( (y2 - yInt) // slope )
 		if y1 >= self.height or y2 < 0 or x1 >= self.width or x2 < 0:
-			print "error, check points out of range"
+			Log.error( "check points out of range" )
 			return [0]
 		# get points above and below horz
 		above = frame[y1][x1]
@@ -329,10 +330,10 @@ class VideoCapture:
 		# find where the line intersects the horz for return
 		x = int( (yHorz - yInt) // slope )
 		if below and not above:
-			print "road above horz"
+			Log.debug( "road above horz" )
 			return [1, x, yHorz]
 		elif above and not below:
-			print "road below horz"
+			Log.debug( "road below horz" )
 			return [2, x, yHorz]
 		else:
 			return [0]
@@ -344,21 +345,21 @@ class VideoCapture:
 		Returns the sum of these 3 points or False on error.
 		"""
 		if not (x or y):
-			print "error: you must provide x or y to check."
+			Log.error( "target x or y must be provided." )
 			return False
 		elif x and not y:
 			y = slope * x + yInt
 			if not ( 0 <= x < self.width ) or not ( 2 <= y < self.height-2 ):
-				print "error: point is not in frame."
+				Log.error( "point is not in frame." )
 				return False
 			return frame[y][x] | frame[y+2][x] | frame[y-2][x]
 		elif y and not x: 
 			if not slope:
-				print "error: slope must be a non-zero number."
+				Log.error( "slope must be a non-zero number." )
 				return false
 			x = (y - yInt) / slope
 			if not ( 2 <= x < self.width-2 ) or not ( 0 <= y < self.height ):
-				print "error: point is not in frame."
+				Log.error( "point is not in frame." )
 				return False
 			return frame[y][x] | frame[y][x+2] | frame[y][x-2]
 		else:
@@ -401,8 +402,8 @@ class VideoCapture:
 					right.append( l )
 				else:
 					# don't know
-					print "unknown line:", l
-					print "slope:", slope
+					Log.debug( "unknown line: %s" % l )
+					Log.debug( "slope: %s" % slope ) 
 					cv2.line( lineFrame, (l[0],l[1]), (l[2],l[3]), (0,255,255), 3 )
 
 			lSlope, lYInt = (None, None)
@@ -471,7 +472,7 @@ class VideoCapture:
 			self.currentMeta.rlYInt  = rYInt
 			self.currentMeta.horizLines = yHorz
 		else:
-			print "no lines detected"
+			Log.info( "no lines detected" )
 
 		return lineFrame, avgXIntersect, outHorz
 
@@ -501,14 +502,14 @@ class VideoCapture:
 		redcount = 0
 		bluecount = 0
 		if redcount >= 400:
-			print "red detected"
+			Log.debug( "red detected" )
 		elif bluecount >= 400:
 			#destination has been reached
 			# stop function
 			# LED light show?
-			print "blue detected"
+			Log.debug( "blue detected" )
 		elif greencount >= 300:
-			#print "I see an arrow"
+			# Log.debug( "I see an arrow" )
 			img = self.currentFrame
 			crop = img[100:200, 100:260]
 			gray = cv2.cvtColor(crop,cv2.COLOR_BGR2GRAY)
@@ -523,7 +524,7 @@ class VideoCapture:
 				yCoor.append(int(corners[i][0][1]))
 			yCoorSorted = sorted(yCoor)
 			xCoorSorted = sorted(xCoor)
-			#print "xCoor: " + str(xCoor)
+			# Log.debug( "xCoor: " + str(xCoor) )
 			#find length of list, then find value of 0
 			# and max index then subtract to find length
 			yMaxIndex = (len(yCoorSorted) - 1)
@@ -533,24 +534,24 @@ class VideoCapture:
 			halfxVal = xValue/2
 			testTip = (halfxVal + xCoorSorted[0])
 
-			#print "testTip: " + str(testTip)
+			# Log.debug( "testTip: " + str(testTip) )
 			for j in range(len(xCoor)):
 				if ((xCoorSorted[xMaxIndex] - xCoorSorted[xMaxIndex-1]) <= 5):
-					print "Left Arrow"
+					Log.info( "Left Arrow" )
 				elif((xCoorSorted[1] - xCoorSorted[0]) <= 5):
-					print"Right Arrow"
+					Log.info( "Right Arrow" )
 				elif ((testTip > xCoorSorted[j]) and (testTip < xCoorSorted[j+1])):
 					xValue = xCoorSorted[j+1]
-					#print "xValue: " + str(xValue)
+					# Log.debug( "xValue: " + str(xValue) )
 					for k in range(len(xCoor)):
 						if xValue == xCoor[k]:
 							vertTip = yCoor[k]
-							#print "vertTip: " + str(vertTip)
-							#print "yCoor: " + str(yCoor)
+							# Log.debug( "vertTip: " + str(vertTip) )
+							# Log.debug( "yCoor: " + str(yCoor) )
 							if ((vertTip == yCoorSorted[yMaxIndex]) or ((yCoorSorted[1] - yCoorSorted[0]) <= 5)):
-									print "Down Arrow"
+									Log.info( "Down Arrow" )
 							elif ((vertTip == yCoorSorted[0]) or ((yCoorSorted[yMaxIndex] - yCoorSorted[yMaxIndex-1]) <= 5)):
-									print "Up Arrow"
+									Log.info( "Up Arrow" )
 			#num = 0
 			#if num < 1:
 			#	cv2.imwrite("thumbnail.jpg", img)
@@ -562,11 +563,14 @@ class VideoCapture:
 
 
 if __name__ == "__main__":
+	import sys
 	from time import time, sleep
 	from argparse import ArgumentParser
-	import sys
+
 
 	parser = ArgumentParser()
+	parser.add_argument( "-v", "--verbose", help="log debug data", action="store_true" )
+	parser.add_argument( "--logfile", help="specify a file to log to rather than the console" )
 	parser.add_argument( "-i", "--infile", help="use video from an input file rather than the camera" )
 	parser.add_argument( "-o", "--outfile", help="output processed to a file" )
 	parser.add_argument( "-f", "--function", help="choose image processing function, current options are 'none', 'lines', 'shapes'", default='none' )
@@ -575,8 +579,20 @@ if __name__ == "__main__":
 	parser.add_argument( "-l", "--framelimit", type=int, help="number of frames to capture" )
 	args = parser.parse_args()
 
+	kwargs = {}
+	if args.verbose:
+		kwargs['level'] = Log.DEBUG
+	else:
+		kwargs['level'] = Log.INFO
+	if args.logfile:
+		kwargs['filename'] = args.logfile
+	kwargs['format'] = '%(module)s.%(funcName)s %(level)s: %(message)s'
+	kwargs['datefmt'] = '%H:%M:%S'
+	
+	Log.basicConfig( **kwargs )
+
 	if args.function not in [ 'none', 'lines', 'shapes' ]:
-		print "The function you specified is not supported."
+		Log.error( "The function you specified is not supported." )
 		parser.print_help()
 		sys.exit(0)
 
@@ -616,7 +632,7 @@ if __name__ == "__main__":
 	t1 = time()
 	tt = t1 - t0
 	
-	print "frames: %d" % vc.frameCount
-	print "time: %f" % tt
-	print "fps: %f" % (vc.frameCount/tt)
+	Log.info( "frames: %d" % vc.frameCount )
+	Log.info( "time: %f" % tt )
+	Log.info( "fps: %f" % (vc.frameCount/tt) )
 
