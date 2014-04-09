@@ -3,7 +3,9 @@
 # the commands sent by the BeagleBone.
 
 from bbio import *
-import logging as Log
+import logging
+
+Log = logging.getLogger()
 
 # comment this out when not demoing
 DEMO = False

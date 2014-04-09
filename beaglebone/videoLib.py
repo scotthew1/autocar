@@ -5,8 +5,9 @@ import cv2
 import cv
 import numpy as np
 from collections import deque, defaultdict
-import logging as Log 
+import logging
 
+Log = logging.getLogger()
 
 class FrameMeta:
 
@@ -118,7 +119,8 @@ class VideoCapture:
 
 	def writeFrame( self, frame=None ):
 		if not self.writer:
-			raise Exception( "Cannot write frame; no writer defined." )
+			# no writer defined
+			return
 		if frame is not None:
 			self.writer.write( frame )
 		elif self.currentFrame is not None:
@@ -350,7 +352,7 @@ class VideoCapture:
 		elif x and not y:
 			y = slope * x + yInt
 			if not ( 0 <= x < self.width ) or not ( 2 <= y < self.height-2 ):
-				Log.error( "point is not in frame." )
+				Log.debug( "point is not in frame." )
 				return False
 			return frame[y][x] | frame[y+2][x] | frame[y-2][x]
 		elif y and not x: 
@@ -359,7 +361,7 @@ class VideoCapture:
 				return false
 			x = (y - yInt) / slope
 			if not ( 2 <= x < self.width-2 ) or not ( 0 <= y < self.height ):
-				Log.error( "point is not in frame." )
+				Log.debug( "point is not in frame." )
 				return False
 			return frame[y][x] | frame[y][x+2] | frame[y][x-2]
 		else:
@@ -567,6 +569,7 @@ class VideoCapture:
 
 if __name__ == "__main__":
 	import sys
+	import traceback
 	from time import time, sleep
 	from argparse import ArgumentParser
 
@@ -584,15 +587,22 @@ if __name__ == "__main__":
 
 	kwargs = {}
 	if args.verbose:
-		kwargs['level'] = Log.DEBUG
+		kwargs['level'] = logging.DEBUG
 	else:
-		kwargs['level'] = Log.INFO
+		kwargs['level'] = logging.INFO
 	if args.logfile:
 		kwargs['filename'] = args.logfile
-	kwargs['format'] = '%(module)s.%(funcName)s %(level)s: %(message)s'
+	kwargs['format'] = '%(levelname)s %(module)s.%(funcName)s: %(message)s'
 	kwargs['datefmt'] = '%H:%M:%S'
 	
-	Log.basicConfig( **kwargs )
+	logging.basicConfig( **kwargs )
+
+	# log uncaught exceptions
+	# thanks http://stackoverflow.com/a/8054179
+	def logException( type, value, tb ):
+		Log.exception( "Uncaught exception: {0}".format( str(value) ) )
+	
+	sys.excepthook = logException
 
 	if args.function not in [ 'none', 'lines', 'shapes' ]:
 		Log.error( "The function you specified is not supported." )
@@ -638,4 +648,5 @@ if __name__ == "__main__":
 	Log.info( "frames: %d" % vc.frameCount )
 	Log.info( "time: %f" % tt )
 	Log.info( "fps: %f" % (vc.frameCount/tt) )
+
 
