@@ -67,51 +67,48 @@ def forwardMovement():
 def mainLoop():
 	global nextTurn
 
-	try:
-		while True:
-			Log.debug( "buffer loop" )
-			while vc.frameBuf.size() < 5 and vc.captureFrame():
-				frame, intersect, horz = vc.findLines()
-				vc.drawGrid( frame )
-				vc.writeFrame( frame )
-				if intersect:
-					vc.saveFrameToBuf()
+	while True:
+		Log.debug( "buffer loop" )
+		while vc.frameBuf.size() < 5 and vc.captureFrame():
+			frame, intersect, horz = vc.findLines()
+			vc.drawGrid( frame )
+			vc.writeFrame( frame )
+			if intersect:
+				vc.saveFrameToBuf()
 
-			Log.debug( "sending start" )
-			cl.flush()
-			cl.start( 13 )
-			test = cl.readAndCheck()
-			if not test:
-				Log.warning( "start not received D=" )
+		Log.debug( "sending start" )
+		cl.flush()
+		cl.start( 13 )
+		test = cl.readAndCheck()
+		if not test:
+			Log.warning( "start not received D=" )
+		else:
+			Log.info( "start received!" )
+
+		# go forward til we have to stop
+		forwardMovement()
+
+		Log.debug( "sending stop" )
+		cl.flush()
+		cl.stop()
+		if not cl.readAndCheck():
+			Log.warning( "stop not received D=" )
 			else:
-				Log.info( "start received!" )
+			Log.info( "stop received!" )
 
-			# go forward til we have to stop
-			forwardMovement()
-
-			Log.debug( "sending stop" )
+		# now we gotta turn
+		if nextTurn == 'left':
+			Log.debug( "sending left" )
 			cl.flush()
-			cl.stop()
+			cl.turnLeft()
 			if not cl.readAndCheck():
-				Log.warning( "stop not received D=" )
- 			else:
-				Log.info( "stop received!" )
+				Log.warning( "turn not received D=" )
+				else:
+				Log.info( "turn received!" )
 
-			# now we gotta turn
-			if nextTurn == 'left':
-				Log.debug( "sending left" )
-				cl.flush()
-				cl.turnLeft()
-				if not cl.readAndCheck():
-					Log.warning( "turn not received D=" )
- 				else:
-					Log.info( "turn received!" )
-
-			# delay for turn and clear that buffer
-			delay( 3000 )
-			vc.frameBuf.clear()
-	except KeyboardInterrupt:
-		Log.info( "we're done here" )
+		# delay for turn and clear that buffer
+		delay( 3000 )
+		vc.frameBuf.clear()
 
 
 if __name__ == '__main__':
@@ -144,10 +141,10 @@ if __name__ == '__main__':
 
 	# log uncaught exceptions
 	# thanks http://stackoverflow.com/a/8054179
-	# def logException( type, value, tb ):
-	# 	Log.exception( "Uncaught exception: {0}".format( str(value) ), exc_info=True )
+	def logException( type, value, tb ):
+		Log.exception( "Uncaught exception: {0}".format( str(value) ), exc_info=True )
 	
-	# sys.excepthook = logException
+	sys.excepthook = logException
 
 	vc = VideoCapture( outfile=args.outfile, fourcc=args.fourcc )
 	cl.setup()
@@ -155,4 +152,9 @@ if __name__ == '__main__':
 	print "starting in 10 seconds..."
 	delay( 10000 )
 
-	mainLoop()
+	try:
+		mainLoop()
+	except KeyboardInterrupt:
+		Log.info( "we're done here" )
+
+	vc.cleanup()

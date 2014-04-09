@@ -102,6 +102,10 @@ class VideoCapture:
 		else:
 			self.preview = False
 
+	def cleanUp( self ):
+		cv2.destroyAllWindows()
+		self.capture.release()
+
 
 	# capturing / storing frames
 	def captureFrame( self ):
@@ -428,14 +432,8 @@ class VideoCapture:
 				x = self.getXIntesectFromSlopeInt( lSlope, lYInt, rSlope, rYInt )
 				self.currentMeta.xIntersect = x
 				avgXIntersect = self.frameBuf.newAvgXIntersect( x )
-				cv2.putText( lineFrame, "x: %d" % avgXIntersect, (10,15), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,255,255) )
-				cv2.circle( lineFrame, (avgXIntersect, self.height/2), 4, (0,255,255) )
-			elif avgXIntersect:
-				cv2.putText( lineFrame, "x: %d" % avgXIntersect, (10,15), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,255,255) )
-				cv2.circle( lineFrame, (avgXIntersect, self.height/2), 4, (0,255,255) )
 			
 			# do horizontal line shit
-			yHorz = []
 			if len( horz ) > 0:
 				ptSlopeHorz = self.getAvgHorizontals( horz, lineFrame )
 				ptSlopeHorz.sort(key=lambda tup: tup[1])
@@ -453,26 +451,18 @@ class VideoCapture:
 					elif pnt == 0:
 						cv2.circle( lineFrame, (self.width/2, int(hYInt)), 3, (0,255,0), 3 )
 					outHorz.append( ( hYInt, pnt ) )
-					# check for roads near horz
-					# if lSlope:
-					# 	res = self.checkHorizontal( thresh, line[1], lSlope, lYInt )
-					# 	if res[0] == 1:
-					# 		cv2.circle( lineFrame, (res[1], res[2]), 3, (0,255,255), 3 )
-					# 	elif res[0] == 2:
-					# 		cv2.circle( lineFrame, (res[1], res[2]), 3, (255,0,255), 3 )
-					# if rSlope:
-					# 	res = self.checkHorizontal( thresh, line[1], rSlope, rYInt )
-					# 	if res[0] == 1:
-					# 		cv2.circle( lineFrame, (res[1], res[2]), 3, (0,255,255), 3 )
-					# 	elif res[0] == 2:
-					# 		cv2.circle( lineFrame, (res[1], res[2]), 3, (255,0,255), 3 )
+
+			# draw the midpoint and numeric value
+			if avgXIntersect:
+				cv2.putText( lineFrame, "x: %d" % avgXIntersect, (10,15), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,255,255) )
+				cv2.circle( lineFrame, (avgXIntersect, self.height/2), 4, (0,255,255) )
 			
 			# save frame metadata
 			self.currentMeta.llSlope = lSlope
 			self.currentMeta.llYInt  = lYInt
 			self.currentMeta.rlSlope = rSlope
 			self.currentMeta.rlYInt  = rYInt
-			self.currentMeta.horizLines = yHorz
+			self.currentMeta.horizLines = outHorz
 		else:
 			Log.info( "no lines detected" )
 
@@ -649,4 +639,4 @@ if __name__ == "__main__":
 	Log.info( "time: %f" % tt )
 	Log.info( "fps: %f" % (vc.frameCount/tt) )
 
-
+	vc.cleanUp()
