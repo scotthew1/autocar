@@ -4,7 +4,9 @@ from bbio import *
 from cv2 import circle
 from videoLib import VideoCapture
 import commandLib as cl
-import logging as Log
+import logging
+
+Log = logging.getLogger()
 
 global vc
 nextTurn = 'left'
@@ -54,9 +56,9 @@ def forwardMovement():
 			cl.nudge( nudgeMotor, nudgeTime )
 			test = cl.readAndCheck()
 			if not test:
-				Log.warning( "nudge %#x, %d not received D=" % nudgeMotor, nudgeTime )
+				Log.warning( "nudge %s, %d not received D=" % (nudgeMotor, nudgeTime) )
 			else:
-				Log.info( "nudge %#x, %d received!" % nudgeMotor, nudgeTime )
+				Log.info( "nudge %s, %d received!" % (nudgeMotor, nudgeTime) )
 				lastNudge = vc.frameCount
 		vc.drawGrid( frame )
 		vc.writeFrame( frame )
@@ -67,7 +69,7 @@ def mainLoop():
 
 	try:
 		while True:
-			Log.degbug( "buffer loop" )
+			Log.debug( "buffer loop" )
 			while vc.frameBuf.size() < 5 and vc.captureFrame():
 				frame, intersect, horz = vc.findLines()
 				vc.drawGrid( frame )
@@ -75,7 +77,7 @@ def mainLoop():
 				if intersect:
 					vc.saveFrameToBuf()
 
-			Log.degbug( "sending start" )
+			Log.debug( "sending start" )
 			cl.flush()
 			cl.start( 13 )
 			test = cl.readAndCheck()
@@ -87,7 +89,7 @@ def mainLoop():
 			# go forward til we have to stop
 			forwardMovement()
 
-			Log.degbug( "sending stop" )
+			Log.debug( "sending stop" )
 			cl.flush()
 			cl.stop()
 			if not cl.readAndCheck():
@@ -97,7 +99,7 @@ def mainLoop():
 
 			# now we gotta turn
 			if nextTurn == 'left':
-				Log.degbug( "sending left" )
+				Log.debug( "sending left" )
 				cl.flush()
 				cl.turnLeft()
 				if not cl.readAndCheck():
@@ -113,6 +115,7 @@ def mainLoop():
 
 
 if __name__ == '__main__':
+	import sys, os
 	from argparse import ArgumentParser
 	from datetime import datetime
 	global vc
@@ -125,8 +128,8 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 
 	st = datetime.now().strftime('%m-%d-%Y_%H-%M-%S')
-	log_path = '../log/%s.log' % st
-
+	log_path = 'log/%s.log' % st
+	
 	kwargs = {}
 	if args.verbose:
 		kwargs['level'] = logging.DEBUG
@@ -134,14 +137,22 @@ if __name__ == '__main__':
 		kwargs['level'] = logging.INFO
 	if not args.console:
 		kwargs['filename'] = log_path
-	kwargs['format'] = '%(module)s.%(funcName)s %(level)s: %(message)s'
+	kwargs['format'] = '%(levelname)s %(module)s.%(funcName)s: %(message)s'
 	kwargs['datefmt'] = '%H:%M:%S'
 	
-	Log.basicConfig( **kwargs )
+	logging.basicConfig( **kwargs )
+
+	# log uncaught exceptions
+	# thanks http://stackoverflow.com/a/8054179
+	# def logException( type, value, tb ):
+	# 	Log.exception( "Uncaught exception: {0}".format( str(value) ), exc_info=True )
+	
+	# sys.excepthook = logException
 
 	vc = VideoCapture( outfile=args.outfile, fourcc=args.fourcc )
 	cl.setup()
 
+	print "starting in 10 seconds..."
 	delay( 10000 )
 
 	mainLoop()
