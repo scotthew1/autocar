@@ -477,17 +477,20 @@ class VideoCapture:
 
 	def findShapes( self ):
 		xCount = 0
+		# cropping the battery
+		img = self.currentFrame
+		crop = img[100:200, 100:260]
 		# Convert BGR to HSV
-		hsv = cv2.cvtColor(self.currentFrame, cv2.COLOR_BGR2HSV)
+		hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
 		#define range of GREEN 
 		# array( HUE, SATURATION, VALUE/BRIGHTNESS)
 		lower_green = np.array([45,85,65])
 		upper_green = np.array([70,255,255])
 		#define range of RED - Kyle
 		lower_red = np.array([0,0,0])
-		upper_red = np.array([190,255,255])
+		upper_red = np.array([25,230,230])
 		#define range of BLUE
-		lower_blue = np.array([110,50,50])
+		lower_blue = np.array([100,40,40])
 		upper_blue = np.array([130,255,255])
 		#Using greenmask to find everything within a range of the given values
 		#and returning this to help find signs on the road
@@ -498,23 +501,23 @@ class VideoCapture:
 		# Checks to see if we see enough green for there to be an arrow in the image
 		# Counts the number of non-zero values in the array 
 		greencount = np.count_nonzero(greenmask)
-		redcount = 0
-		bluecount = 0
-		if redcount >= 400:
-			print "red detected"
-		elif bluecount >= 400:
+		redcount = np.count_nonzero(redmask)
+		bluecount = np.count_nonzero(bluemask)
+		if redcount >= 400 and redcount < 3000:
+			print redcount
+		elif bluecount >= 1200:
 			#destination has been reached
 			# stop function
 			# LED light show?
+			print bluecount
 			print "blue detected"
-		elif greencount >= 300:
-			#print "I see an arrow"
-			img = self.currentFrame
-			crop = img[100:200, 100:260]
+		elif greencount >= 1100:
+			#print greencount
+			# convert to grayscale
 			gray = cv2.cvtColor(crop,cv2.COLOR_BGR2GRAY)
 			corners = cv2.goodFeaturesToTrack(gray,7,0.01,10)
 			corners = np.int0(corners)
-
+			#print "I see an arrow"
 			#find max and min x & y values
 			xCoor = list()
 			yCoor = list()
@@ -538,7 +541,7 @@ class VideoCapture:
 				if ((xCoorSorted[xMaxIndex] - xCoorSorted[xMaxIndex-1]) <= 5):
 					print "Left Arrow"
 				elif((xCoorSorted[1] - xCoorSorted[0]) <= 5):
-					print"Right Arrow"
+					print "Right Arrow"
 				elif ((testTip > xCoorSorted[j]) and (testTip < xCoorSorted[j+1])):
 					xValue = xCoorSorted[j+1]
 					#print "xValue: " + str(xValue)
