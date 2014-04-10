@@ -19,7 +19,7 @@ def led(color = OFF):
 	GPIO.output("P8_9", color[2])
 
 def cycle():
-	for i in range(0,2)
+	for i in range(0,2):
 		GPIO.output("P8_7", 1)
 		GPIO.output("P8_8", 0)
 		GPIO.output("P8_9", 0)

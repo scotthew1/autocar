@@ -9,7 +9,7 @@ import commandLib as cl
 nudgeHold = 10
 
 def mainLoop():
-	vc = VideoCapture( outfile="sample_video/nudge_movement_stop.avi" )
+	vc = VideoCapture( outfile="sample_video/nudge_movement_raw.avi" )
 	lastNudge = 0
 
 	intersect = None
@@ -17,7 +17,7 @@ def mainLoop():
 	while vc.frameBuf.size() < 5 and vc.captureFrame():
 		frame, intersect, horz = vc.findLines()
 		vc.drawGrid( frame )
-		vc.writeFrame( frame )
+		vc.writeFrame(  )
 		if intersect:
 			vc.saveFrameToBuf()
 
@@ -44,7 +44,7 @@ def mainLoop():
 				break
 		if mustStop:
 			vc.drawGrid( frame )
-			vc.writeFrame( frame )
+			vc.writeFrame(  )
 			vc.saveFrameToBuf()
 			break
 		if intersect and vc.frameCount >= (lastNudge+15):
@@ -88,7 +88,7 @@ def mainLoop():
 				print "nudge received!"
 				lastNudge = vc.frameCount
 		vc.drawGrid( frame )
-		vc.writeFrame( frame )
+		vc.writeFrame(  )
 		vc.saveFrameToBuf()
 
 	print "sending stop"
