@@ -9,7 +9,7 @@ import logging
 Log = logging.getLogger()
 
 global vc
-nextTurn = None
+nextTurn = 'Left'
 
 def forwardMovement():
 	global nextTurn
@@ -19,8 +19,8 @@ def forwardMovement():
 	while vc.captureFrame():
 		frame, intersect, horz = vc.findLines()
 		# vc.frameBuf.printHorzDiff()
-		if nextTurn == None:
-			nextTurn = vc.findShapes()
+		# if nextTurn == None:
+		next = vc.findShapes()
 		
 		vc.drawGrid( frame )
 		vc.writeFrame( frame )
@@ -143,7 +143,7 @@ def mainLoop():
 			else:
 				log.info( "Destination received!" )
 
-		nextTurn = None
+		# nextTurn = None
 
 		# delay for turn and clear that buffer
 		delay( 3000 )
