@@ -9,13 +9,15 @@ import logging
 Log = logging.getLogger()
 
 global vc
-nextTurn = 'left'
+nextTurn = None
 
 def forwardMovement():
 	lastNudge = 0
 	intersect = None
 	while vc.captureFrame():
 		frame, intersect, horz = vc.findLines()
+		if nextTurn == None:
+			nextTurn = vc.findShapes()
 		nudgeMotor = None
 		nudgeTime  = None
 		mustStop = False
@@ -93,23 +95,63 @@ def mainLoop():
 		cl.stop()
 		if not cl.readAndCheck():
 			Log.warning( "stop not received D=" )
-			else:
+		else:
 			Log.info( "stop received!" )
 
 		# now we gotta turn
-		if nextTurn == 'left':
-			Log.debug( "sending left" )
+		if nextTurn == 'Left':
+			Log.degbug( "sending Left" )
 			cl.flush()
 			cl.turnLeft()
 			if not cl.readAndCheck():
-				Log.warning( "turn not received D=" )
+				Log.warning( "Left not received D=" )
 				else:
-				Log.info( "turn received!" )
+				Log.info( "Left received!" )
+		elif nextTurn == 'Right':
+			Log.debug( "sending Right" )
+			cl.flush()
+			cl.turnRight()
+			if not cl.readAndCheck():
+				Log.warning( "Right not received D=" )
+			else:
+				log.info( "Right received!" )
+		elif nextTurn == 'Up':
+			Log.debug( "sending Up" )
+			cl.flush()
+			if not cl.readAndCheck():
+				Log.warning( "Straight received D=" )
+			else:
+				log.info( "Straight received!" )
+		elif nextTurn == 'Down':
+			Log.debug( "sending Down" )
+			cl.flush()
+			cl.turnAround()
+			if not cl.readAndCheck():
+				Log.warning( "Turn around not received D=" )
+			else:
+				log.info( "Turn around received!" )
+		elif nextTurn == 'StopSign':
+			Log.debug( "sending StopSign" )
+			cl.flush()
+			cl.turnAround()
+			if not cl.readAndCheck():
+				Log.warning( "Stop sign not received D=" )
+			else:
+				log.info( "Stop sign received!" )
+		elif nextTurn == 'Destination':
+			Log.debug( "sending Destination" )
+			cl.flush()
+			cl.turnAround()
+			if not cl.readAndCheck():
+				Log.warning( "Destination not received D=" )
+			else:
+				log.info( "Destination received!" )
+
+		nextTurn = None
 
 		# delay for turn and clear that buffer
 		delay( 3000 )
 		vc.frameBuf.clear()
-
 
 if __name__ == '__main__':
 	import sys, os
