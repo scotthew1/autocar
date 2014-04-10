@@ -635,12 +635,12 @@ class VideoCapture:
 			# convert to grayscale
 			hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 			# get our ranges
-			lower_color = np.array([35,80,80])
-			upper_color= np.array([82,255,255])
+			#lower_color = np.array([35,80,80])
+			#upper_color = np.array([82,255,255])
 			# find everything in the given range
-			thr = cv2.inRange(hsv,lower_color,upper_color)
+			# thr = cv2.inRange(hsv,lower_color,upper_color)
 			# find the contours 
-			contours, hierarchy = cv2.findContours(thr,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+			contours, hierarchy = cv2.findContours(greenmask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 			cnt=contours[0]
 			x,y,w,h = cv2.boundingRect(cnt)
 			x -= 5
@@ -648,7 +648,7 @@ class VideoCapture:
 			w += 10
 			h += 10
 			cv2.rectangle(img,(x,y),(x+w,y+h),(0,0,0),-1)
-		return img
+		return greenmask
 
 	def trackCorners( self ):
 		"""
@@ -740,7 +740,7 @@ if __name__ == "__main__":
 	
 	# sys.excepthook = logException
 
-	if args.function not in [ 'none', 'lines', 'shapes', 'corners' ]:
+	if args.function not in [ 'none', 'lines', 'shapes', 'corners', 'mask' ]:
 		Log.error( "The function you specified is not supported." )
 		parser.print_help()
 		sys.exit(0)
@@ -781,6 +781,13 @@ if __name__ == "__main__":
 				if args.show:
 					vc.previewFrame( cornerFrame )
 					# sleep( 0.1 )
+			elif args.function == 'mask':	
+				maskFrame = vc.maskcolors()
+				vc.drawGrid( maskFrame )
+				if args.outfile:
+					vc.writeFrame( maskFrame )
+				if args.show:
+					vc.previewFrame( maskFrame )
 			vc.saveFrameToBuf()
 			if args.framelimit and vc.frameCount >= args.framelimit:
 				break
