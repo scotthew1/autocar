@@ -13,7 +13,42 @@ def setup():
 	GPIO.setup("P8_8", GPIO.OUT)	# GREEN
 	GPIO.setup("P8_9", GPIO.OUT)	# BLUE
 
-def LED(color = OFF):
+def led(color = OFF):
 	GPIO.output("P8_7", color[0])
 	GPIO.output("P8_8", color[1])
 	GPIO.output("P8_9", color[2])
+
+def cycle():
+	for i in range(0,2)
+		GPIO.output("P8_7", 1)
+		GPIO.output("P8_8", 0)
+		GPIO.output("P8_9", 0)
+		delay(300)
+		GPIO.output("P8_7", 0)
+		GPIO.output("P8_8", 1)
+		GPIO.output("P8_9", 0)
+		delay(300)
+		GPIO.output("P8_7", 0)
+		GPIO.output("P8_8", 0)
+		GPIO.output("P8_9", 1)
+		delay(300)
+		GPIO.output("P8_7", 1)
+		GPIO.output("P8_8", 1)
+		GPIO.output("P8_9", 0)
+		delay(300)
+		GPIO.output("P8_7", 1)
+		GPIO.output("P8_8", 0)
+		GPIO.output("P8_9", 1)
+		delay(300)
+		GPIO.output("P8_7", 0)
+		GPIO.output("P8_8", 1)
+		GPIO.output("P8_9", 1)
+		delay(300)
+		GPIO.output("P8_7", 1)
+		GPIO.output("P8_8", 1)
+		GPIO.output("P8_9", 1)
+		delay(300)
+		GPIO.output("P8_7", 0)
+		GPIO.output("P8_8", 0)
+		GPIO.output("P8_9", 0)
+		delay(300)
