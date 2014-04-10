@@ -117,7 +117,7 @@ void nudge(unsigned char motor, int time){
   Mx.SetMode(Mx_M1, FLOAT+SPEED);
   Mx.SetMode(Mx_M2, FLOAT+INV+SPEED);
   inc_power(motor,10);
-  nTime = time * 10;
+  nTime = time * 20;
   delay(nTime);
   start_motors(main_power);
 }
