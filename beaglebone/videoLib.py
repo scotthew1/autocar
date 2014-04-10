@@ -649,6 +649,7 @@ class VideoCapture:
 			w += 10
 			h += 10
 			cv2.rectangle(img,(x,y),(x+w,y+h),(0,0,0),-1)
+
 		return img
 
 	def trackCorners( self ):
@@ -680,10 +681,26 @@ class VideoCapture:
 		# goodNew = p1[st==1]
 		goodOld = p0
 
-		if goodOld is not None:
-			for old in goodOld:
-				a, b = old.ravel()
+		# if goodOld is not None:
+		# 	for old in goodOld:
+		# 		a, b = old.ravel()
+		# 		cv2.circle( cornerFrame, (a,b), 3, (0,255,0), 3 )
+
+		# find the points closest to the left / right lines
+		lSlope, lYInt = self.currentMeta.lSlope, self.currentMeta.lYInt
+		rSlope, rYInt = self.currentMeta.rSlope, self.currentMeta.rYInt
+
+		if lSlope and lYInt and goodOld is not None:
+			self.drawSlopeIntLine( lSlope, lYInt, (0,255,0), cornerFrame )
+			dists = [ ( self.distanceToLine( lSlope, lYInt, old[0][0], old[0][1] ), old.ravel() ) for old in goodOld ]
+			dists.sort( key=lambda tup: tup[0] )
+			if len(dists) >= 1:
+				a, b = dists[0][1]
 				cv2.circle( cornerFrame, (a,b), 3, (0,255,0), 3 )
+			if len(dists) >= 2:
+				c, d = dists[1][1]
+				cv2.circle( cornerFrame, (c,d), 3, (0,255,0), 3 )
+			# print dists
 
 		# find the points closest to the left / right lines
 		# lSlope, lYInt = self.currentMeta.lSlope, self.currentMeta.lYInt
