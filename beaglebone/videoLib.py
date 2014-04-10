@@ -316,6 +316,22 @@ class VideoCapture:
 		x = int( ( i2 - i1 ) / ( s1 - s2 ) )
 		return x
 
+	def distanceToLine( self, slope, yInt, x, y ):
+		"""
+		Find the distance from point to a line in slope intercept form
+
+		Equation thanks to: http://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
+		"""
+		if ( slope == 0 ):
+			Log.error( "slope must be non-zero." )
+			return False
+
+		ex1 = ( x + slope*y - slope*yInt ) / ( m**2 + 1 )
+		ex2 = slope*( x + slope*y - slope*yInt ) / ( m**2 + 1 ) + 
+		d = ( ex1**2 + ex2**2 )**.5
+
+		return d
+
 
 	# image processing functions
 	def findGaps( self, frame, slope, yInt ):
@@ -582,25 +598,39 @@ class VideoCapture:
 
 	def trackCorners( self ):
 		"""
+		Tracks the corners along the road
+		Should be called __after__ findLines() to look for corners around
+		the edge of the road
+		
 		with help from:
 		http://opencv-python-tutroals.readthedocs.org/en/latest/py_tutorials/py_video/py_lucas_kanade/py_lucas_kanade.html 
 		"""
 		if self.currentFrame is None:
 			raise Exception( "No frame to process." )
 
+		# these are the output variables
+		cornerFrame = self.currentFrame.copy()
+
 		gray  = cv2.cvtColor( self.currentFrame, cv.CV_RGB2GRAY )
 		ret, thresh = cv2.threshold( gray, 200, 255, cv2.THRESH_BINARY )
 
-		if self.lastFlowPnts is None:
-			feature_params = dict( maxCorners = 100,
-							qualityLevel = 0.3,
-							minDistance = 7,
-							blockSize = 7 )
-			p0 = cv2.goodFeaturesToTrack( thresh, mask=None, **feature_params )
+		# if self.lastFlowPnts is None:
+		featureKwargs = dict( maxCorners = 6,
+						qualityLevel = 0.3,
+						minDistance = 7,
+						blockSize = 7 )
+		p0 = cv2.goodFeaturesToTrack( thresh, mask=None, **featureKwargs )
 
 		# Select good points
-		good_new = p1[st==1]
-		good_old = p0[st==1]
+		# goodNew = p1[st==1]
+		goodOld = p0
+
+		if goodOld is not None:
+			for old in goodOld:
+				a, b = old.ravel()
+				cv2.circle( cornerFrame, (a,b), 3, (0,255,0), 3 )
+
+		return cornerFrame
 
 
 if __name__ == "__main__":
@@ -673,13 +703,13 @@ if __name__ == "__main__":
 					vc.previewFrame(  )
 					# sleep( 0.03 )
 			elif args.function == 'corners':
-				cornerFrame = vc.findShapes()
+				cornerFrame = vc.trackCorners()
 				vc.drawGrid( cornerFrame )
 				if args.outfile:
 					vc.writeFrame( cornerFrame )
 				if args.show:
 					vc.previewFrame( cornerFrame )
-					# sleep( 0.03 )
+					# sleep( 0.1 )
 			vc.saveFrameToBuf()
 			if args.framelimit and vc.frameCount >= args.framelimit:
 				break
