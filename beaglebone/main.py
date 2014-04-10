@@ -12,6 +12,8 @@ global vc
 nextTurn = None
 
 def forwardMovement():
+	global nextTurn
+
 	lastNudge = 0
 	intersect = None
 	while vc.captureFrame():
@@ -99,7 +101,7 @@ def mainLoop():
 
 		# now we gotta turn
 		if nextTurn == 'Left':
-			Log.degbug( "sending Left" )
+			Log.debug( "sending Left" )
 			cl.flush()
 			cl.turnLeft()
 			if not cl.readAndCheck():
@@ -116,11 +118,6 @@ def mainLoop():
 				log.info( "Right received!" )
 		elif nextTurn == 'Up':
 			Log.debug( "sending Up" )
-			cl.flush()
-			if not cl.readAndCheck():
-				Log.warning( "Straight received D=" )
-			else:
-				log.info( "Straight received!" )
 		elif nextTurn == 'Down':
 			Log.debug( "sending Down" )
 			cl.flush()
@@ -132,7 +129,7 @@ def mainLoop():
 		elif nextTurn == 'StopSign':
 			Log.debug( "sending StopSign" )
 			cl.flush()
-			cl.turnAround()
+			#cl.stop()
 			if not cl.readAndCheck():
 				Log.warning( "Stop sign not received D=" )
 			else:
@@ -140,7 +137,7 @@ def mainLoop():
 		elif nextTurn == 'Destination':
 			Log.debug( "sending Destination" )
 			cl.flush()
-			cl.turnAround()
+			cl.stop()
 			if not cl.readAndCheck():
 				Log.warning( "Destination not received D=" )
 			else:
@@ -186,7 +183,6 @@ if __name__ == '__main__':
 	# 	Log.exception( "Uncaught exception: {0}".format( str(value) ), exc_info=True )
 	
 	# sys.excepthook = logException
-
 	vc = VideoCapture( outfile=args.outfile, fourcc=args.fourcc )
 	cl.setup()
 

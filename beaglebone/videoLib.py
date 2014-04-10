@@ -51,12 +51,26 @@ class FrameBuffer:
 		else:
 			return x
 
+	def printHorzDiff( self ):
+		lastFrame = None
+		for frame in self.buffer:
+			if lastFrame is None:
+				lastFrame = frame
+			else:
+				h1 = lastFrame.horizLines
+				h2 = frame.horizLines
+				size = min( len(h1), len(h2) )
+				diffs = [ h1[i][0] - h2[i][0] for i in range(size) ]
+				print diffs
+
 
 class VideoCapture:
 	
 	frameCount = 0
 	frameBuf = FrameBuffer()
 	currentMeta = None
+	lastFlowFrame = None
+	lastFlowPnts = None
 
 	def __init__( self, infile=None, outfile=None, fourcc="XVID", preview=False ):
 		Log.info( "opening videoCapture" )
@@ -469,6 +483,9 @@ class VideoCapture:
 		return lineFrame, avgXIntersect, outHorz
 
 	def findShapes( self ):
+		if self.currentFrame is None:
+			raise Exception( "No frame to process." )
+
 		xCount = 0
 		# cropping the battery
 		img = self.currentFrame
@@ -561,6 +578,28 @@ class VideoCapture:
 
 		return direction
 
+	def trackCorners( self ):
+		"""
+		with help from:
+		http://opencv-python-tutroals.readthedocs.org/en/latest/py_tutorials/py_video/py_lucas_kanade/py_lucas_kanade.html 
+		"""
+		if self.currentFrame is None:
+			raise Exception( "No frame to process." )
+
+		gray  = cv2.cvtColor( self.currentFrame, cv.CV_RGB2GRAY )
+		ret, thresh = cv2.threshold( gray, 200, 255, cv2.THRESH_BINARY )
+
+		if self.lastFlowPnts is None:
+			feature_params = dict( maxCorners = 100,
+							qualityLevel = 0.3,
+							minDistance = 7,
+							blockSize = 7 )
+			p0 = cv2.goodFeaturesToTrack( thresh, mask=None, **feature_params )
+
+		# Select good points
+		good_new = p1[st==1]
+		good_old = p0[st==1]
+
 
 if __name__ == "__main__":
 	import sys
@@ -574,7 +613,7 @@ if __name__ == "__main__":
 	parser.add_argument( "--logfile", help="specify a file to log to rather than the console" )
 	parser.add_argument( "-i", "--infile", help="use video from an input file rather than the camera" )
 	parser.add_argument( "-o", "--outfile", help="output processed to a file" )
-	parser.add_argument( "-f", "--function", help="choose image processing function, current options are 'none', 'lines', 'shapes'", default='none' )
+	parser.add_argument( "-f", "--function", help="choose image processing function, current options are 'none', 'lines', 'shapes', 'corners'", default='none' )
 	parser.add_argument( "--fourcc", help="four character code to specify video output type", default="XVID" )
 	parser.add_argument( "-s", "--show", help="show the output on screen", action="store_true" )
 	parser.add_argument( "-l", "--framelimit", type=int, help="number of frames to capture" )
@@ -599,7 +638,7 @@ if __name__ == "__main__":
 	
 	sys.excepthook = logException
 
-	if args.function not in [ 'none', 'lines', 'shapes' ]:
+	if args.function not in [ 'none', 'lines', 'shapes', 'corners' ]:
 		Log.error( "The function you specified is not supported." )
 		parser.print_help()
 		sys.exit(0)
@@ -630,6 +669,14 @@ if __name__ == "__main__":
 					vc.writeFrame( shapeFrame )
 				if args.show:
 					vc.previewFrame( shapeFrame )
+					# sleep( 0.03 )
+			elif args.function == 'corners':
+				cornerFrame = vc.findShapes()
+				vc.drawGrid( cornerFrame )
+				if args.outfile:
+					vc.writeFrame( cornerFrame )
+				if args.show:
+					vc.previewFrame( cornerFrame )
 					# sleep( 0.03 )
 			vc.saveFrameToBuf()
 			if args.framelimit and vc.frameCount >= args.framelimit:
