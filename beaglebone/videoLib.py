@@ -11,10 +11,10 @@ Log = logging.getLogger()
 
 class FrameMeta:
 
-	llSlope = None
-	llYInt  = None
-	rlSlope = None
-	rlYInt  = None
+	lSlope = None
+	lYInt  = None
+	rSlope = None
+	rYInt  = None
 	horizLines = None
 	xIntersect = None
 
@@ -52,6 +52,9 @@ class FrameBuffer:
 			return x
 
 	def printHorzDiff( self ):
+		"""
+		This was an experimental function that should probably be deleted
+		"""
 		lastFrame = None
 		for frame in self.buffer:
 			if lastFrame is None:
@@ -162,6 +165,9 @@ class VideoCapture:
 
 	# drawing functions
 	def drawGrid( self, frame=None ):
+		"""
+		draws a grid on the frame for debugging
+		"""
 		color = (0,0,0)
 		thick = 1
 		vert1 = self.width / 4
@@ -226,6 +232,9 @@ class VideoCapture:
 
 	# math functions
 	def get2PointSlope( self, line ):
+		"""
+		returns the slope given a 2 point line segment
+		"""
 		div = line[2] - line[0]
 		if div == 0:
 			return 10000
@@ -280,6 +289,9 @@ class VideoCapture:
 		return out
 
 	def getAvgLine( self, lines ):
+		"""
+		this function is currently not used, up for deletion
+		"""
 		outLine = [0, 0, 0, 0]
 		length  = len( lines )
 		for l in lines:
@@ -316,9 +328,28 @@ class VideoCapture:
 		x = int( ( i2 - i1 ) / ( s1 - s2 ) )
 		return x
 
+	def distanceToLine( self, slope, yInt, x, y ):
+		"""
+		Find the distance from point to a line in slope intercept form
+
+		Equation thanks to: http://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
+		"""
+		if ( slope == 0 ):
+			Log.error( "slope must be non-zero." )
+			return False
+
+		ex1 = ( x + slope*y - slope*yInt ) / ( slope**2 + 1 )
+		ex2 = ( slope*( x + slope*y - slope*yInt ) / ( slope**2 + 1 ) ) + yInt - y
+		d = ( ex1**2 + ex2**2 )**.5
+
+		return d
+
 
 	# image processing functions
 	def findGaps( self, frame, slope, yInt ):
+		"""
+		this function is currently not used, up for deletion
+		"""
 		if slope == 0:
 			Log.error( "zero slope" )
 			return False
@@ -334,6 +365,9 @@ class VideoCapture:
 		return out
 
 	def checkHorizontal( self, frame, yHorz, slope, yInt ):
+		"""
+		this function is currently not used, up for deletion
+		"""
 		if slope == 0:
 			Log.error( "zero slope" )
 			return False
@@ -473,10 +507,10 @@ class VideoCapture:
 				cv2.circle( lineFrame, (avgXIntersect, self.height/2), 4, (0,255,255) )
 			
 			# save frame metadata
-			self.currentMeta.llSlope = lSlope
-			self.currentMeta.llYInt  = lYInt
-			self.currentMeta.rlSlope = rSlope
-			self.currentMeta.rlYInt  = rYInt
+			self.currentMeta.lSlope = lSlope
+			self.currentMeta.lYInt  = lYInt
+			self.currentMeta.rSlope = rSlope
+			self.currentMeta.rYInt  = rYInt
 			self.currentMeta.horizLines = outHorz
 		else:
 			Log.info( "no lines detected" )
@@ -580,27 +614,93 @@ class VideoCapture:
 
 		return direction
 
+	# Function to mask out the signs on the road this is done to make sure the we don't mess up the line detection.
+	def maskcolors( self ):
+		img = self.currentFrame
+		hsv = img.copy()
+		lower_green = np.array([45,85,65])
+		upper_green = np.array([70,255,255])
+		#define range of BLUE
+		lower_blue = np.array([100,40,40])
+		upper_blue = np.array([130,255,255])
+		#Using greenmask to find everything within a range of the given values
+		#and returning this to help find signs on the road
+		greenmask = cv2.inRange(hsv, lower_green, upper_green)
+		bluemask = cv2.inRange(hsv, lower_blue, upper_blue)
+		# Checks to see if we see enough green for there to be an arrow in the image
+		# Counts the number of non-zero values in the array 
+		greencount = np.count_nonzero(greenmask)
+		bluecount = np.count_nonzero(bluemask)
+		if bluecount >= 100 or greencount >= 100:
+			# convert to grayscale
+			hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+			# get our ranges
+			lower_color = np.array([35,80,80])
+			upper_color= np.array([82,255,255])
+			# find everything in the given range
+			thr = cv2.inRange(hsv,lower_color,upper_color)
+			# find the contours 
+			contours, hierarchy = cv2.findContours(thr,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+			cnt=contours[0]
+			x,y,w,h = cv2.boundingRect(cnt)
+			x -= 5
+			y -= 5
+			w += 10
+			h += 10
+			cv2.rectangle(img,(x,y),(x+w,y+h),(0,0,0),-1)
+		return img
+
 	def trackCorners( self ):
 		"""
+		Tracks the corners along the road
+		Should be called __after__ findLines() to look for corners around
+		the edge of the road
+		
 		with help from:
 		http://opencv-python-tutroals.readthedocs.org/en/latest/py_tutorials/py_video/py_lucas_kanade/py_lucas_kanade.html 
 		"""
 		if self.currentFrame is None:
 			raise Exception( "No frame to process." )
 
+		# these are the output variables
+		cornerFrame = self.currentFrame.copy()
+
 		gray  = cv2.cvtColor( self.currentFrame, cv.CV_RGB2GRAY )
 		ret, thresh = cv2.threshold( gray, 200, 255, cv2.THRESH_BINARY )
 
-		if self.lastFlowPnts is None:
-			feature_params = dict( maxCorners = 100,
-							qualityLevel = 0.3,
-							minDistance = 7,
-							blockSize = 7 )
-			p0 = cv2.goodFeaturesToTrack( thresh, mask=None, **feature_params )
+		# if self.lastFlowPnts is None:
+		featureKwargs = dict( maxCorners = 6,
+						qualityLevel = 0.3,
+						minDistance = 30,
+						blockSize = 7 )
+		p0 = cv2.goodFeaturesToTrack( thresh, mask=None, **featureKwargs )
 
 		# Select good points
-		good_new = p1[st==1]
-		good_old = p0[st==1]
+		# goodNew = p1[st==1]
+		goodOld = p0
+
+		# if goodOld is not None:
+		# 	for old in goodOld:
+		# 		a, b = old.ravel()
+		# 		cv2.circle( cornerFrame, (a,b), 3, (0,255,0), 3 )
+
+		# find the points closest to the left / right lines
+		lSlope, lYInt = self.currentMeta.lSlope, self.currentMeta.lYInt
+		rSlope, rYInt = self.currentMeta.rSlope, self.currentMeta.rYInt
+
+		if lSlope and lYInt and goodOld is not None:
+			self.drawSlopeIntLine( lSlope, lYInt, (0,255,0), cornerFrame )
+			dists = [ ( self.distanceToLine( lSlope, lYInt, old[0][0], old[0][1] ), old.ravel() ) for old in goodOld ]
+			dists.sort( key=lambda tup: tup[0] )
+			if len(dists) >= 1:
+				a, b = dists[0][1]
+				cv2.circle( cornerFrame, (a,b), 3, (0,255,0), 3 )
+			if len(dists) >= 2:
+				c, d = dists[1][1]
+				cv2.circle( cornerFrame, (c,d), 3, (0,255,0), 3 )
+			# print dists
+
+		return cornerFrame
 
 
 if __name__ == "__main__":
@@ -673,13 +773,14 @@ if __name__ == "__main__":
 					vc.previewFrame(  )
 					# sleep( 0.03 )
 			elif args.function == 'corners':
-				cornerFrame = vc.findShapes()
+				vc.findLines()
+				cornerFrame = vc.trackCorners()
 				vc.drawGrid( cornerFrame )
 				if args.outfile:
 					vc.writeFrame( cornerFrame )
 				if args.show:
 					vc.previewFrame( cornerFrame )
-					# sleep( 0.03 )
+					# sleep( 0.1 )
 			vc.saveFrameToBuf()
 			if args.framelimit and vc.frameCount >= args.framelimit:
 				break
