@@ -455,16 +455,37 @@ class VideoCapture:
 					hSlope, hYInt = ptSlopeHorz[i]
 					# self.drawHorizontalLine( y, (0,0,255), lineFrame )
 					self.drawSlopeIntLine( hSlope, hYInt, (0,0,255), lineFrame )
+					if rSlope:
+						rtempY = (((ptSlopeHorz[i][1] - ptSlopeHorz[i+1][1])/2) + ptSlopeHorz[i][1])
+						rX = (rtempY - rYint) / rSlope
+						rightPnt = self.checkPointOnLine( thresh, rSlope, rYint, y=rtempY )
+						if rightPnt == False:
+							pass
+						elif rightPnt == 255:
+							cv2.circle(lineFrame, (rX, int(rYint)), 3, (0,0,255), 3 )
+						elif rightPnt == 0:
+							cv2.circle(lineFrame, (rX, int(rYint)), 3, (0,255,0), 3 )
+					if lSlope:
+						ltempY = (((ptSlopeHorz[i][1] - ptSlopeHorz[i+1][1])/2) + ptSlopeHorz[i][1])
+						lX = (ltempY - lYint) / lSlope
+						leftPnt = self.checkPointOnLine( thresh, lSlope, lYint, y=ltempY )
+						if leftPnt == False:
+							pass
+						elif leftPnt == 255:
+							cv2.circle(lineFrame, (lX, int(lYint)), 3, (0,0,255), 3 )
+						elif leftPnt == 0:
+							cv2.circle(lineFrame, (lX, int(lYint)), 3, (0,0,255), 3 )
 					# check to see if we can cross the line
 					pnt = self.checkPointOnLine( thresh, hSlope, hYInt, x=self.width/2 )
 					if pnt == False:
 						# an error occurred
 						pass
-					if pnt == 255:
+					elif pnt == 255:
 						cv2.circle( lineFrame, (self.width/2, int(hYInt)), 3, (0,0,255), 3 )
 					elif pnt == 0:
 						cv2.circle( lineFrame, (self.width/2, int(hYInt)), 3, (0,255,0), 3 )
 					outHorz.append( ( hYInt, pnt ) )
+
 
 			# draw the midpoint and numeric value
 			if avgXIntersect:
