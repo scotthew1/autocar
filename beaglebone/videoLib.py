@@ -480,8 +480,8 @@ class VideoCapture:
 		lower_green = np.array([45,85,65])
 		upper_green = np.array([70,255,255])
 		#define range of RED - Kyle
-		lower_red = np.array([0,0,0])
-		upper_red = np.array([25,230,230])
+		lower_red = np.array([170,50,50])
+		upper_red = np.array([10,255,255])
 		#define range of BLUE
 		lower_blue = np.array([100,40,40])
 		upper_blue = np.array([130,255,255])
@@ -497,13 +497,14 @@ class VideoCapture:
 		redcount = np.count_nonzero(redmask)
 		bluecount = np.count_nonzero(bluemask)
 		if redcount >= 400 and redcount < 3000:
-			Log.debug( "%s" % redcount )
+			Log.info( "Stop Sign detected" )
+			direction = 'StopSign'
 		elif bluecount >= 1200:
 			#destination has been reached
 			# stop function
 			# LED light show?
-			Log.debug( "%s" % bluecount )
-			Log.debug( "blue detected" )
+			Log.info("Destination detected")
+			direction = 'Destination'
 		elif greencount >= 1100:
 			# Log.debug( "%s" % greencount )
 			# convert to grayscale
@@ -533,8 +534,10 @@ class VideoCapture:
 			for j in range(len(xCoor)):
 				if ((xCoorSorted[xMaxIndex] - xCoorSorted[xMaxIndex-1]) <= 5):
 					Log.info( "Left Arrow" )
+					direction = 'Left'
 				elif((xCoorSorted[1] - xCoorSorted[0]) <= 5):
 					Log.info( "Right Arrow" )
+					direction = 'Right'
 				elif ((testTip > xCoorSorted[j]) and (testTip < xCoorSorted[j+1])):
 					xValue = xCoorSorted[j+1]
 					# Log.debug( "xValue: " + str(xValue) )
@@ -545,16 +548,18 @@ class VideoCapture:
 							# Log.debug( "yCoor: " + str(yCoor) )
 							if ((vertTip == yCoorSorted[yMaxIndex]) or ((yCoorSorted[1] - yCoorSorted[0]) <= 5)):
 									Log.info( "Down Arrow" )
+									direction = 'Down'
 							elif ((vertTip == yCoorSorted[0]) or ((yCoorSorted[yMaxIndex] - yCoorSorted[yMaxIndex-1]) <= 5)):
 									Log.info( "Up Arrow" )
+									direction = 'Up'
 			#num = 0
 			#if num < 1:
 			#	cv2.imwrite("thumbnail.jpg", img)
-			for i in corners:
-				x,y = i.ravel()
-				cv2.circle(gray,(x,y),3,255,-1)
+			# for i in corners:
+			# 	x,y = i.ravel()
+			# 	cv2.circle(gray,(x,y),3,255,-1)
 
-		return greenmask
+		return direction
 
 
 if __name__ == "__main__":
