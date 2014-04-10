@@ -88,7 +88,7 @@ class VideoCapture:
 			self.capture = cv2.VideoCapture(0)
 			self.capture.set(cv.CV_CAP_PROP_FRAME_WIDTH, 340)
 			self.capture.set(cv.CV_CAP_PROP_FRAME_HEIGHT, 240)
-			self.capture.set(cv.CV_CAP_PROP_FPS, 15)
+			# self.capture.set(cv.CV_CAP_PROP_FPS, 15)
 			# self.capture.set(cv.CV_CAP_PROP_BRIGHTNESS, .5)
 			# self.capture.set(cv.CV_CAP_PROP_EXPOSURE,-10)
 			if not self.capture.isOpened():
@@ -124,6 +124,12 @@ class VideoCapture:
 	def cleanUp( self ):
 		cv2.destroyAllWindows()
 		self.capture.release()
+
+	def reset( self ):
+		self.frameBuf.clear()
+		self.lastFlowFrame = None
+		self.lastFlowPnts = None
+		self.currentFrame = None
 
 
 	# capturing / storing frames
@@ -353,7 +359,7 @@ class VideoCapture:
 			Log.error( "slope must be non-zero." )
 			return False
 
-		ex1 = ( x + slope*y - slope*yInt ) / ( slope**2 + 1 )
+		ex1 = ( ( x + slope*y - slope*yInt ) / ( slope**2 + 1 ) ) - x
 		ex2 = ( slope*( x + slope*y - slope*yInt ) / ( slope**2 + 1 ) ) + yInt - y
 		d = ( ex1**2 + ex2**2 )**.5
 
@@ -473,9 +479,10 @@ class VideoCapture:
 					right.append( l )
 				else:
 					# don't know
-					Log.debug( "unknown line: %s" % l )
-					Log.debug( "slope: %s" % slope ) 
-					cv2.line( lineFrame, (l[0],l[1]), (l[2],l[3]), (0,255,255), 3 )
+					pass
+					# Log.debug( "unknown line: %s" % l )
+					# Log.debug( "slope: %s" % slope ) 
+					# cv2.line( lineFrame, (l[0],l[1]), (l[2],l[3]), (0,255,255), 3 )
 
 			lSlope, lYInt = (None, None)
 			rSlope, rYInt = (None, None)
@@ -670,7 +677,7 @@ class VideoCapture:
 		# Counts the number of non-zero values in the array 
 		greencount = np.count_nonzero(greenmask)
 		bluecount = np.count_nonzero(bluemask)
-		if bluecount >= 100 or greencount >= 100:
+		if bluecount >= 300 or greencount >= 300:
 			# convert to grayscale
 			hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 			# get our ranges
@@ -693,8 +700,6 @@ class VideoCapture:
 	def trackCorners( self ):
 		"""
 		Tracks the corners along the road
-		Should be called __after__ findLines() to look for corners around
-		the edge of the road
 		
 		with help from:
 		http://opencv-python-tutroals.readthedocs.org/en/latest/py_tutorials/py_video/py_lucas_kanade/py_lucas_kanade.html 
@@ -702,61 +707,70 @@ class VideoCapture:
 		if self.currentFrame is None:
 			raise Exception( "No frame to process." )
 
-		# def findNearestY( pntArray, value ):
-		# 	yVals = [ pnt[0][1] for pnt in pntArray ]
-		# 	idx = ( np.abs(yVals-value) ).argmin()
-		# 	return pntArray[idx]
-
 		# these are the output variables
 		cornerFrame = self.currentFrame.copy()
-
+ 
 		gray  = cv2.cvtColor( self.currentFrame, cv.CV_RGB2GRAY )
-		ret, thresh = cv2.threshold( gray, 180, 255, cv2.THRESH_BINARY )
-		edges = cv2.Canny( thresh, 50, 100 )
+		# blur = cv2.medianBlur( gray, 15 )
+		# ret, thresh = cv2.threshold( blur, 180, 255, cv2.THRESH_BINARY )
+		# edges = cv2.Canny( gray, 50, 100 )
 
-		# if self.lastFlowPnts is None:
-		featureKwargs = dict( maxCorners = 10,
-						qualityLevel = 0.3,
-						minDistance = 7,
-						blockSize = 7 )
-		goodOld = cv2.goodFeaturesToTrack( thresh, mask=None, **featureKwargs )
+		if self.lastFlowPnts is None:
+			lSlope, lYInt = self.currentMeta.lSlope, self.currentMeta.lYInt
+			rSlope, rYInt = self.currentMeta.rSlope, self.currentMeta.rYInt
 
-		if goodOld is not None:
-			for old in goodOld:
-				a, b = old.ravel()
-				cv2.circle( cornerFrame, (a,b), 3, (0,255,0), 3 )
+			if not lSlope or not rSlope:
+				return cornerFrame
 
-		# find the points closest to the left / right lines
-		# lSlope, lYInt = self.currentMeta.lSlope, self.currentMeta.lYInt
-		# rSlope, rYInt = self.currentMeta.rSlope, self.currentMeta.rYInt
-		
+			Log.info( "finding new tracking points" )
+			featureKwargs = dict( maxCorners = 16,
+							qualityLevel = 0.10,
+							minDistance = 40,
+							blockSize = 7 )
+			good = cv2.goodFeaturesToTrack( gray, mask=None, **featureKwargs )
+			good = [ pnt for pnt in good if pnt[0][1] < self.height/2 ]
+			filtered = []
+			for pnt in good:
+				if pnt[0][1] > self.height/2 or pnt[0][1] < self.height/8:
+					continue
+				lDist = abs( self.distanceToLine( lSlope, lYInt, pnt[0][0], pnt[0][1] ) )
+				rDist = abs( self.distanceToLine( rSlope, rYInt, pnt[0][0], pnt[0][1] ) )
+				Log.debug( "lDist: %0.3f, rDist %0.3f" % (lDist, rDist) )
+				if lDist < 6:
+					filtered.append(pnt)
+				elif rDist < 6:
+					filtered.append(pnt)
+			good = sorted( filtered, key=lambda pnt: pnt[0][1] )
 
-		# if len( pnts ) > 0:
-		# 	for a, b in pnts:
-		# 		cv2.circle( cornerFrame, (int(a), int(b)), 3, (0,255,0), 3 )
+			if good is not None and len(good) > 0:
+				for i in range( len(good) ):
+					a, b = good[i].ravel()
+					if i == 0:
+						cv2.circle( cornerFrame, (a,b), 3, (0,0,255), 3 )
+					else:
+						cv2.circle( cornerFrame, (a,b), 3, (0,255,0), 3 )
+				self.lastFlowPnts  = np.array( good ) 
+				self.lastFlowFrame = gray
+		else:
+			old = self.lastFlowPnts
+			lk_params = dict( winSize  = (15,15), maxLevel = 2, criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03) )
+			new, st, err = cv2.calcOpticalFlowPyrLK( self.lastFlowFrame, gray, old, None, **lk_params )
 
-		# if lSlope and lYInt and goodOld is not None:
-		# 	self.drawSlopeIntLine( lSlope, lYInt, (0,255,0), cornerFrame )
-		# 	dists = [ ( self.distanceToLine( lSlope, lYInt, old[0][0], old[0][1] ), old.ravel() ) for old in goodOld ]
-		# 	dists.sort( key=lambda tup: tup[0] )
-		# 	if len(dists) >= 1:
-		# 		a, b = dists[0][1]
-		# 		cv2.circle( cornerFrame, (a,b), 3, (0,255,0), 3 )
-		# 	if len(dists) >= 2:
-		# 		c, d = dists[1][1]
-		# 		cv2.circle( cornerFrame, (c,d), 3, (0,255,0), 3 )
-		# 	# print dists
+			# new = [ pnt for pnt in new if 0 < pnt[0][1] < self.height ]
+			# new = np.array( new ) 
+
+			if new is not None:
+				for i in range( len(new) ):
+					a, b = new[i].ravel()
+					if i == 0:
+						cv2.circle( cornerFrame, (a,b), 3, (0,0,255), 3 )
+					else:
+						cv2.circle( cornerFrame, (a,b), 3, (0,255,0), 3 )
+
+			self.lastFlowPnts  = new
+			self.lastFlowFrame = gray
 
 		return cornerFrame
-
-	def trackCornersNew( self ):
-		feature_params = dict( maxCorners = 8,
-                       qualityLevel = 0.3,
-                       minDistance = 7,
-                       blockSize = 7 )
-
-		old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
-		p0 = cv2.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 
 
 
@@ -837,7 +851,7 @@ if __name__ == "__main__":
 					vc.writeFrame( cornerFrame )
 				if args.show:
 					vc.previewFrame( cornerFrame )
-					sleep( 0.1 )
+					# sleep( 0.1 )
 			elif args.function == 'mask':	
 				maskFrame = vc.maskcolors()
 				vc.drawGrid( maskFrame )
