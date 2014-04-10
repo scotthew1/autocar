@@ -85,6 +85,7 @@ class VideoCapture:
 			self.capture = cv2.VideoCapture(0)
 			self.capture.set(cv.CV_CAP_PROP_FRAME_WIDTH, 340)
 			self.capture.set(cv.CV_CAP_PROP_FRAME_HEIGHT, 240)
+			self.capture.set(cv.CV_CAP_PROP_FPS, 15)
 			# self.capture.set(cv.CV_CAP_PROP_BRIGHTNESS, .5)
 			if not self.capture.isOpened():
 				raise Exception( "Could not connect to camera." )
@@ -486,6 +487,7 @@ class VideoCapture:
 		if self.currentFrame is None:
 			raise Exception( "No frame to process." )
 
+		direction = None
 		xCount = 0
 		# cropping the battery
 		img = self.currentFrame
@@ -633,10 +635,10 @@ if __name__ == "__main__":
 
 	# log uncaught exceptions
 	# thanks http://stackoverflow.com/a/8054179
-	def logException( type, value, tb ):
-		Log.exception( "Uncaught exception: {0}".format( str(value) ) )
+	# def logException( type, value, tb ):
+	# 	Log.exception( "Uncaught exception: {0}".format( str(value) ) )
 	
-	sys.excepthook = logException
+	# sys.excepthook = logException
 
 	if args.function not in [ 'none', 'lines', 'shapes', 'corners' ]:
 		Log.error( "The function you specified is not supported." )
@@ -663,12 +665,12 @@ if __name__ == "__main__":
 					vc.previewFrame( lineFrame )
 					# sleep( 0.03 )
 			elif args.function == 'shapes':
-				shapeFrame = vc.findShapes()
-				vc.drawGrid( shapeFrame )
+				direction = vc.findShapes()
+				vc.drawGrid(  )
 				if args.outfile:
-					vc.writeFrame( shapeFrame )
+					vc.writeFrame(  )
 				if args.show:
-					vc.previewFrame( shapeFrame )
+					vc.previewFrame(  )
 					# sleep( 0.03 )
 			elif args.function == 'corners':
 				cornerFrame = vc.findShapes()
