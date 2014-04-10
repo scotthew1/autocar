@@ -17,14 +17,16 @@ def forwardMovement():
 	lastNudge = 0
 	intersect = None
 	while vc.captureFrame():
-		frame, intersect, horz = vc.findLines()
+		lineFrame, intersect, horz = vc.findLines()
 		# vc.frameBuf.printHorzDiff()
 		# if nextTurn == None:
 		next = vc.findShapes()
 		
-		vc.drawGrid( frame )
-		vc.writeFrame( frame )
+		vc.drawGrid( lineFrame )
+		vc.writeFrame( lineFrame )
 		vc.saveFrameToBuf()
+
+		frame = lineFrame
 
 		nudgeMotor = None
 		nudgeTime  = None
@@ -32,30 +34,30 @@ def forwardMovement():
 			if line[0] > vc.height-45 and line[1] == 255:
 				Log.debug( "can't continue, gotta stop" )
 				return
-		if intersect and vc.frameCount >= (lastNudge+15):
-			if intersect > (vc.width/2 + 60):
+		if intersect and vc.frameCount >= (lastNudge+10):
+			if intersect > (vc.width/2 + 30):
 				nudgeMotor = cl.M2
 				nudgeTime  = 7
 				circle( frame, (20, vc.height-20), 6, (0,0,255), 2 )
-			elif intersect > (vc.width/2 + 30):
-				nudgeMotor = cl.M2
-				nudgeTime  = 4
-				circle( frame, (20, vc.height-20), 4, (0,0,255), 2 )
 			elif intersect > (vc.width/2 + 15):
 				nudgeMotor = cl.M2
-				nudgeTime  = 2
+				nudgeTime  = 5
+				circle( frame, (20, vc.height-20), 4, (0,0,255), 2 )
+			elif intersect > (vc.width/2 + 8):
+				nudgeMotor = cl.M2
+				nudgeTime  = 3
 				circle( frame, (20, vc.height-20), 2, (0,0,255), 2 )
-			elif intersect < (vc.width/2 - 60):
+			elif intersect < (vc.width/2 - 30):
 				nudgeMotor = cl.M1
 				nudgeTime  = 7
 				circle( frame, (20, vc.height-20), 6, (0,255,0), 2 )
-			elif intersect < (vc.width/2 - 30):
-				nudgeMotor = cl.M1
-				nudgeTime  = 4
-				circle( frame, (20, vc.height-20), 4, (0,255,0), 2 )
 			elif intersect < (vc.width/2 - 15):
 				nudgeMotor = cl.M1
-				nudgeTime  = 2
+				nudgeTime  = 5
+				circle( frame, (20, vc.height-20), 4, (0,255,0), 2 )
+			elif intersect < (vc.width/2 - 8):
+				nudgeMotor = cl.M1
+				nudgeTime  = 3
 				circle( frame, (20, vc.height-20), 2, (0,255,0), 2 )
 		if nudgeMotor and nudgeTime:
 			cl.flush()
@@ -73,9 +75,10 @@ def mainLoop():
 	while True:
 		Log.debug( "buffer loop" )
 		while vc.frameBuf.size() < 5 and vc.captureFrame():
-			frame, intersect, horz = vc.findLines()
-			vc.drawGrid( frame )
-			vc.writeFrame( frame )
+			lineFrame, intersect, horz = vc.findLines()
+			
+			vc.drawGrid( lineFrame )
+			vc.writeFrame( lineFrame )
 			if intersect:
 				vc.saveFrameToBuf()
 
@@ -147,7 +150,7 @@ def mainLoop():
 
 		# delay for turn and clear that buffer
 		delay( 3000 )
-		vc.frameBuf.clear()
+		vc.reset()
 
 if __name__ == '__main__':
 	import sys, os
@@ -186,8 +189,8 @@ if __name__ == '__main__':
 	vc = VideoCapture( outfile=args.outfile, fourcc=args.fourcc )
 	cl.setup()
 
-	print "starting in 10 seconds..."
-	delay( 10000 )
+	# print "starting in 10 seconds..."
+	# delay( 10000 )
 
 	try:
 		mainLoop()
