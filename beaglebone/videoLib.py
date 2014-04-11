@@ -456,7 +456,7 @@ class VideoCapture:
 
 		# opencv time, do the filtering and find lines
 		gray  = cv2.cvtColor( self.currentFrame, cv.CV_RGB2GRAY )
-		ret, thresh = cv2.threshold( gray, 210, 255, cv2.THRESH_BINARY )
+		ret, thresh = cv2.threshold( gray, 200, 255, cv2.THRESH_BINARY )
 		edges = cv2.Canny( thresh, 50, 100 )
 		lines = cv2.HoughLinesP( edges, 5, np.pi/90, 50, maxLineGap=10 )
 		
@@ -574,13 +574,13 @@ class VideoCapture:
 		xCount = 0
 		# cropping the battery
 		img = self.currentFrame
-		crop = img[100:200, 100:260]
+		crop = img[100:160, 140:200]
 		# Convert BGR to HSV
 		hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
 		#define range of GREEN 
 		# array( HUE, SATURATION, VALUE/BRIGHTNESS)
-		lower_green = np.array([30,30,55])
-		upper_green = np.array([70,255,255])
+		lower_green = np.array([50,50,50])
+		upper_green = np.array([90,255,255])
 		#define range of RED - Kyle
 		lower_red = np.array([170,50,50])
 		upper_red = np.array([10,255,255])
@@ -598,6 +598,7 @@ class VideoCapture:
 		greencount = np.count_nonzero(greenmask)
 		redcount = np.count_nonzero(redmask)
 		bluecount = np.count_nonzero(bluemask)
+		print greencount
 		if redcount >= 400 and redcount < 3000:
 			Log.info( "Stop Sign detected" )
 			direction = 'StopSign'
@@ -607,7 +608,7 @@ class VideoCapture:
 			# LED light show?
 			Log.info("Destination detected")
 			direction = 'Destination'
-		elif greencount >= 1100:
+		elif greencount >= 500:
 			# Log.debug( "%s" % greencount )
 			# convert to grayscale
 			gray = cv2.cvtColor(crop,cv2.COLOR_BGR2GRAY)
@@ -634,10 +635,10 @@ class VideoCapture:
 
 			# Log.debug( "testTip: " + str(testTip) )
 			for j in range(len(xCoor)):
-				if ((xCoorSorted[xMaxIndex] - xCoorSorted[xMaxIndex-1]) <= 5):
+				if ((xCoorSorted[xMaxIndex] - xCoorSorted[xMaxIndex-1]) <= 5) and not ((xCoorSorted[1] - xCoorSorted[0]) <= 5):
 					Log.info( "Left Arrow" )
 					direction = 'Left'
-				elif((xCoorSorted[1] - xCoorSorted[0]) <= 5):
+				elif((xCoorSorted[1] - xCoorSorted[0]) <= 5) and not ((xCoorSorted[xMaxIndex] - xCoorSorted[xMaxIndex-1]) <= 5):
 					Log.info( "Right Arrow" )
 					direction = 'Right'
 				elif ((testTip > xCoorSorted[j]) and (testTip < xCoorSorted[j+1])):
@@ -657,9 +658,9 @@ class VideoCapture:
 			#num = 0
 			#if num < 1:
 			#	cv2.imwrite("thumbnail.jpg", img)
-			# for i in corners:
-			# 	x,y = i.ravel()
-			# 	cv2.circle(gray,(x,y),3,255,-1)
+			for i in corners:
+				x,y = i.ravel()
+				cv2.circle(crop,(x,y),3,255,-1)
 
 		return crop
 
@@ -739,7 +740,7 @@ class VideoCapture:
 			my1 = self.height/8
 			my2 = self.height/2
 			featureKwargs = dict( maxCorners = 20,
-							qualityLevel = 0.1,
+							qualityLevel = 0.2,
 							minDistance = 20,
 							blockSize = 7 )
 							# mask = mask[mx1:mx2, my1:my2] )
@@ -751,14 +752,14 @@ class VideoCapture:
 					continue
 				lDist = abs( self.distanceToLine( lSlope, lYInt, pnt[0][0], pnt[0][1] ) )
 				rDist = abs( self.distanceToLine( rSlope, rYInt, pnt[0][0], pnt[0][1] ) )
-				hDist = abs( self.distanceToLine( hSlope, hYInt, pnt[0][0], pnt[0][1] ) )
+				# hDist = abs( self.distanceToLine( hSlope, hYInt, pnt[0][0], pnt[0][1] ) )
 				# Log.debug( "lDist: %0.3f, rDist %0.3f" % (lDist, rDist) )
 				if lDist < 10:
 					filtered.append(pnt)
 				elif rDist < 10:
 					filtered.append(pnt)
-				elif hDist < 10 and self.width/4 < pnt[0][0] < 3*self.width/4:
-					filtered.append(pnt)
+				# elif hDist < 7 and self.width/4 < pnt[0][0] < 3*self.width/4:
+				# 	filtered.append(pnt)
 			good = sorted( filtered, key=lambda pnt: pnt[0][1] )
 
 			if good is not None and len(good) > 0:
@@ -790,33 +791,37 @@ class VideoCapture:
 			self.lastFlowFrame = gray
 		return cornerFrame
 	
-	# def findTurns ( self ):
-	# 	#Finds possible turns based off of points returned from trackCorners
-	# 	# Returns a tuple (Left, Right, Up)
-	# 	points = self.lastFlowPnts
-	# 	rightCount = 0
-	# 	leftCount = 0
+	
 
-	# 	if len(points) == 4:
-	# 		possibleMoves = (1, 1, 1)
-	# 	elif len(points) < 4:
-	# 		for i in range( len(points) ) :
-	# 			if points[i][0] > self.width/2:
-	# 				rightCount = rightCount + 1
-	# 			elif points[i][0] < self.width/2:
-	# 				leftCount = leftCount + 1
-	# 			if (points[i][0] > self.width/2 and points[i][1] < points[i+1][1]):
-	# 				possibleMoves = (1, 0, 0)
-	# 			elif (points[i][0] < self.width/2 and points[i][1] < points[i+1][1]):
-	# 				possibleMoves = (0, 1, 0)
-	# 			if ((points[i][0] > self.width/2) and rightCount > 2):
-	# 				possibleMoves = (0, 1, 1)
-	# 			elif ((points[i][0] < self.width/2 and leftCount > 2):
-	# 				possibleMoves = (1, 1, 0)
-					
-	# 	return possibleMoves
-
-
+	def findTurns( self ):
+			#Finds possible turns based off of points returned from trackCorners
+			# Returns a tuple (Left, Right, Up)
+			possibleMoves = []
+			points = self.lastFlowPnts
+			rightCount = []
+			leftCount = []
+			if points is not None:
+				if len(points) == 4:
+					possibleMoves = ["Left", "Right", "Up"]
+				elif len(points) < 4:
+					for i in range( len(points) ) :
+						if points[i][0][0] > self.width/2:
+							rightCount.append( points[i][0] )
+						elif points[i][0][0] < self.width/2:
+							leftCount.append( points[i][0] )
+					if (len(leftCount) == 2 and len(rightCount) < 2):
+						possibleMoves = ["Left", "Up"]
+					elif (len(rightCount) == 2 and len(leftCount) < 2):
+						possibleMoves = ["Right", "Up"]
+					elif (len(leftCount) == 1 and len(rightCount) == 1):
+						if (abs(leftCount[0][1] - rightCount[0][1]) <= 5 ):
+							possibleMoves = ["Left", "Right"]
+						elif (leftCount[0][1] > rightCount[0][1]):
+							possibleMoves = ["Left"]
+						elif (leftCount[0][1] < rightCount [0][1]):
+							possibleMoves = ["Right"]
+						
+			return possibleMoves
 
 if __name__ == "__main__":
 	import sys
@@ -896,6 +901,7 @@ if __name__ == "__main__":
 				if vc.lastFlowPnts is None:
 					vc.findLines()
 				cornerFrame = vc.trackCorners()
+				Log.info( vc.findTurns() )
 				vc.drawGrid( cornerFrame )
 				if args.outfile:
 					vc.writeFrame( cornerFrame )
