@@ -113,7 +113,7 @@ class VideoCapture:
 			Log.info( "opening videoWriter" )
 			f = fourcc
 			fourcc = cv.CV_FOURCC( f[0], f[1], f[2], f[3] )
-			self.writer = cv2.VideoWriter( outfile, fourcc, 20.0, (self.width,self.height) )
+			self.writer = cv2.VideoWriter( outfile, fourcc, 10.0, (self.width,self.height) )
 		else:
 			self.writer = None
 
@@ -616,7 +616,7 @@ class VideoCapture:
 			# LED light show?
 			Log.info("Destination detected")
 			direction = 'Destination'
-		elif greencount >= 680:
+		elif greencount >= 100:
 			# Log.debug( "%s" % greencount )
 			# convert to grayscale
 			gray = cv2.cvtColor(crop,cv2.COLOR_BGR2GRAY)
@@ -669,8 +669,10 @@ class VideoCapture:
 			for i in corners:
 				x,y = i.ravel()
 				cv2.circle(crop,(x,y),3,255,-1)
+		else:
+			direction = 'Up'
 
-		return totalgreen
+		return direction
 
 	# Function to mask out the signs on the road this is done to make sure the we don't mess up the line detection.
 	def maskcolors( self ):
