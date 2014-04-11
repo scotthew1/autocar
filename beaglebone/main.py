@@ -4,6 +4,7 @@ from bbio import *
 from cv2 import circle
 from videoLib import VideoCapture
 import commandLib as cl
+import random
 import logging
 
 Log = logging.getLogger()
@@ -36,7 +37,7 @@ def forwardMovement():
 			# Log.debug( 3*vc.height/4 )
 			# Log.debug( pnt )
 			
-			if len(pnts) == 2 and abs(pnts[0][0][1] - pnts[1][0][1]) < 5:
+			if len(pnts) == 2 and abs(pnts[0][0][1] - pnts[1][0][1]) < 8:
 				# condition where there are only 2 dots on the same horz
 				# we don't wanna stop on the farthest tracked point
 				pass
@@ -47,7 +48,7 @@ def forwardMovement():
 			if line[0] > vc.height-80 and line[1] == 255:
 				Log.debug( "can't continue, gotta stop - line" )
 				return
-		if intersect and vc.frameCount >= (lastNudge+15):
+		if intersect and vc.frameCount >= (lastNudge+10):
 			if intersect > (vc.width/2 + 60):
 				nudgeMotor = cl.M2
 				nudgeTime  = 6
@@ -95,6 +96,15 @@ def mainLoop():
 			if intersect:
 				vc.saveFrameToBuf()
 
+		# check allowed directions
+		directions = vc.findTurns()
+		Log.debug( directions )
+		if len( directions ) == 0:
+			Log.warning( "could not find directions, trying again.." )
+			vc.reset()
+			continue
+		nextTurn = random.choice( directions )
+
 		Log.debug( "sending start" )
 		cl.flush()
 		cl.start( 13 )
@@ -115,11 +125,14 @@ def mainLoop():
 		else:
 			Log.info( "stop received!" )
 
+		delay( 100 )
+
 		# now we gotta turn
 		if nextTurn == 'Left':
 			Log.debug( "sending Left" )
 			cl.flush()
 			cl.turnLeft()
+			delay( 4000 )
 			if not cl.readAndCheck():
 				Log.warning( "Left not received D=" )
 			else:
@@ -128,20 +141,22 @@ def mainLoop():
 			Log.debug( "sending Right" )
 			cl.flush()
 			cl.turnRight()
+			delay( 4000 )
 			if not cl.readAndCheck():
 				Log.warning( "Right not received D=" )
 			else:
-				log.info( "Right received!" )
+				Log.info( "Right received!" )
 		elif nextTurn == 'Up':
 			Log.debug( "sending Up" )
 		elif nextTurn == 'Down':
 			Log.debug( "sending Down" )
 			cl.flush()
 			cl.turnAround()
+			delay( 4000 )
 			if not cl.readAndCheck():
 				Log.warning( "Turn around not received D=" )
 			else:
-				log.info( "Turn around received!" )
+				Log.info( "Turn around received!" )
 		elif nextTurn == 'StopSign':
 			Log.debug( "sending StopSign" )
 			cl.flush()
@@ -149,7 +164,7 @@ def mainLoop():
 			if not cl.readAndCheck():
 				Log.warning( "Stop sign not received D=" )
 			else:
-				log.info( "Stop sign received!" )
+				Log.info( "Stop sign received!" )
 		elif nextTurn == 'Destination':
 			Log.debug( "sending Destination" )
 			cl.flush()
@@ -157,12 +172,7 @@ def mainLoop():
 			if not cl.readAndCheck():
 				Log.warning( "Destination not received D=" )
 			else:
-				log.info( "Destination received!" )
-
-		# nextTurn = None
-
-		# delay for turn and clear that buffer
-		delay( 4000 )
+				Log.info( "Destination received!" )
 
 		# burn some frames
 		Log.info( "burning frames.." )
