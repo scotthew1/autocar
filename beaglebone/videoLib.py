@@ -529,7 +529,6 @@ class VideoCapture:
 					# 			cv2.circle(lineFrame, (int(lX), int(lYInt)), 3, (0,0,255), 3 )
 					# 		elif leftPnt == 0:
 					# 			cv2.circle(lineFrame, (int(lX), int(lYInt)), 3, (0,0,255), 3 )
-					
 					#check to see if we can cross the line
 					pnt = self.checkPointOnLine( thresh, hSlope, hYInt, x=self.width/2 )
 					if pnt == 255:
