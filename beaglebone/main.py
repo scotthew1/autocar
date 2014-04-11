@@ -34,7 +34,7 @@ def forwardMovement():
 			if line[0] > vc.height-45 and line[1] == 255:
 				Log.debug( "can't continue, gotta stop" )
 				return
-		if intersect and vc.frameCount >= (lastNudge+10):
+		if intersect and vc.frameCount >= (lastNudge+15):
 			if intersect > (vc.width/2 + 30):
 				nudgeMotor = cl.M2
 				nudgeTime  = 7
@@ -191,6 +191,10 @@ if __name__ == '__main__':
 
 	# print "starting in 10 seconds..."
 	# delay( 10000 )
+
+	# spend some frames letting the camera warm up
+	for i in range(10):
+		vc.captureFrame()
 
 	try:
 		mainLoop()

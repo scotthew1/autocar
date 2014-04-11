@@ -4,7 +4,7 @@
 # needs sudo to run
 
 # detect the webcam
-modprobe uvcvideo
+# modprobe uvcvideo
 
 # set properties for the webcam
 v4l2-ctl -d /dev/video0 -c exposure_auto_priority=1
