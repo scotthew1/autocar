@@ -71,6 +71,7 @@ class VideoCapture:
 	
 	frameCount = 0
 	frameBuf = FrameBuffer()
+	lineThresh = None
 	currentMeta = None
 	lastFlowFrame = None
 	lastFlowPnts = None
@@ -459,6 +460,8 @@ class VideoCapture:
 		ret, thresh = cv2.threshold( gray, 200, 255, cv2.THRESH_BINARY )
 		edges = cv2.Canny( thresh, 50, 100 )
 		lines = cv2.HoughLinesP( edges, 5, np.pi/90, 50, maxLineGap=10 )
+
+		self.currentMeta.lineThresh = thresh
 		
 		# loop through the lines and separate them 
 		if lines is not None:
@@ -574,14 +577,16 @@ class VideoCapture:
 		xCount = 0
 		# cropping the battery
 		img = self.currentFrame
-		crop = img[100:160, 140:200]
+		crop = img[100:180, 100:220]
 		# Convert BGR to HSV
 		hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
 		#define range of GREEN 
 		# array( HUE, SATURATION, VALUE/BRIGHTNESS)
-		lower_green = np.array([50,50,50])
-		upper_green = np.array([90,255,255])
+		lower_green = np.array([50,30,30])
+		upper_green = np.array([95,255,255])
 		#define range of RED - Kyle
+		lower_white = np.array([0,0,255])
+		upper_white = np.array([179,0,255])
 		lower_red = np.array([170,50,50])
 		upper_red = np.array([10,255,255])
 		#define range of BLUE
@@ -592,10 +597,13 @@ class VideoCapture:
 		greenmask = cv2.inRange(hsv, lower_green, upper_green)
 		redmask = cv2.inRange(hsv, lower_red, upper_red)
 		bluemask = cv2.inRange(hsv, lower_blue, upper_blue)
+		whitemask = cv2.inRange(hsv, lower_white, upper_white)
 		# edges = cv2.Canny( greenmask, 50, 100 )
 		# Checks to see if we see enough green for there to be an arrow in the image
 		# Counts the number of non-zero values in the array 
-		greencount = np.count_nonzero(greenmask)
+		totalgreen = np.bitwise_or(greenmask, whitemask)
+		greencount = np.count_nonzero(totalgreen)
+		#whitecount = np.count_nonzero(whitemask)
 		redcount = np.count_nonzero(redmask)
 		bluecount = np.count_nonzero(bluemask)
 		print greencount
@@ -608,7 +616,7 @@ class VideoCapture:
 			# LED light show?
 			Log.info("Destination detected")
 			direction = 'Destination'
-		elif greencount >= 500:
+		elif greencount >= 680:
 			# Log.debug( "%s" % greencount )
 			# convert to grayscale
 			gray = cv2.cvtColor(crop,cv2.COLOR_BGR2GRAY)
@@ -662,7 +670,7 @@ class VideoCapture:
 				x,y = i.ravel()
 				cv2.circle(crop,(x,y),3,255,-1)
 
-		return crop
+		return totalgreen
 
 	# Function to mask out the signs on the road this is done to make sure the we don't mess up the line detection.
 	def maskcolors( self ):
@@ -754,7 +762,10 @@ class VideoCapture:
 				rDist = abs( self.distanceToLine( rSlope, rYInt, pnt[0][0], pnt[0][1] ) )
 				# hDist = abs( self.distanceToLine( hSlope, hYInt, pnt[0][0], pnt[0][1] ) )
 				# Log.debug( "lDist: %0.3f, rDist %0.3f" % (lDist, rDist) )
-				if lDist < 10:
+				if pnt[0][1] < hYInt - 5:
+					#out of bounds
+					pass 
+				elif lDist < 10:
 					filtered.append(pnt)
 				elif rDist < 10:
 					filtered.append(pnt)
@@ -790,8 +801,6 @@ class VideoCapture:
 			self.lastFlowPnts  = new
 			self.lastFlowFrame = gray
 		return cornerFrame
-	
-	
 
 	def findTurns( self ):
 			#Finds possible turns based off of points returned from trackCorners
@@ -822,6 +831,16 @@ class VideoCapture:
 							possibleMoves = ["Right"]
 						
 			return possibleMoves
+
+	def checkReset( self ):
+		thresh = self.currentMeta.lineThresh
+		if thresh is not None:
+			count = np.count_nonzero( thresh )
+			# Log.debug( "reset count: %d" % count )
+			if np.count_nonzero( thresh ) < 200:
+				return True
+			else:
+				return False
 
 if __name__ == "__main__":
 	import sys
@@ -883,6 +902,7 @@ if __name__ == "__main__":
 					# sleep( 0.03 )
 			elif args.function == 'lines':	
 				lineFrame, intersect, horz = vc.findLines()
+				vc.checkReset()
 				vc.drawGrid( lineFrame )
 				if args.outfile:
 					vc.writeFrame( lineFrame )
