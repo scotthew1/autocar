@@ -20,44 +20,53 @@ def forwardMovement():
 		lineFrame, intersect, horz = vc.findLines()
 		# vc.frameBuf.printHorzDiff()
 		# if nextTurn == None:
-		next = vc.findShapes()
+		# next = vc.findShapes()
+		cornerFrame = vc.trackCorners()
 		
-		vc.drawGrid( lineFrame )
-		vc.writeFrame( lineFrame )
+		vc.drawGrid( cornerFrame )
+		vc.writeFrame( cornerFrame )
 		vc.saveFrameToBuf()
 
-		frame = lineFrame
+		frame = cornerFrame
 
 		nudgeMotor = None
 		nudgeTime  = None
+		if vc.lastFlowPnts is not None:
+			pnt = vc.lastFlowPnts[0]
+			# Log.debug( 3*vc.height/4 )
+			# Log.debug( pnt )
+
+			if pnt[0][1] > 3*vc.height/4:
+				Log.debug( "can't continue, gotta stop - corner" )
+				return
 		for line in horz:
-			if line[0] > vc.height-45 and line[1] == 255:
-				Log.debug( "can't continue, gotta stop" )
+			if line[0] > vc.height-80 and line[1] == 255:
+				Log.debug( "can't continue, gotta stop - line" )
 				return
 		if intersect and vc.frameCount >= (lastNudge+15):
-			if intersect > (vc.width/2 + 30):
+			if intersect > (vc.width/2 + 60):
 				nudgeMotor = cl.M2
-				nudgeTime  = 7
+				nudgeTime  = 6
 				circle( frame, (20, vc.height-20), 6, (0,0,255), 2 )
+			elif intersect > (vc.width/2 + 25):
+				nudgeMotor = cl.M2
+				nudgeTime  = 4
+				circle( frame, (20, vc.height-20), 4, (0,0,255), 2 )
 			elif intersect > (vc.width/2 + 15):
 				nudgeMotor = cl.M2
-				nudgeTime  = 5
-				circle( frame, (20, vc.height-20), 4, (0,0,255), 2 )
-			elif intersect > (vc.width/2 + 8):
-				nudgeMotor = cl.M2
-				nudgeTime  = 3
+				nudgeTime  = 2
 				circle( frame, (20, vc.height-20), 2, (0,0,255), 2 )
-			elif intersect < (vc.width/2 - 30):
+			elif intersect < (vc.width/2 - 60):
 				nudgeMotor = cl.M1
-				nudgeTime  = 7
+				nudgeTime  = 6
 				circle( frame, (20, vc.height-20), 6, (0,255,0), 2 )
+			elif intersect < (vc.width/2 - 25):
+				nudgeMotor = cl.M1
+				nudgeTime  = 4
+				circle( frame, (20, vc.height-20), 4, (0,255,0), 2 )
 			elif intersect < (vc.width/2 - 15):
 				nudgeMotor = cl.M1
-				nudgeTime  = 5
-				circle( frame, (20, vc.height-20), 4, (0,255,0), 2 )
-			elif intersect < (vc.width/2 - 8):
-				nudgeMotor = cl.M1
-				nudgeTime  = 3
+				nudgeTime  = 2
 				circle( frame, (20, vc.height-20), 2, (0,255,0), 2 )
 		if nudgeMotor and nudgeTime:
 			cl.flush()
@@ -74,11 +83,11 @@ def mainLoop():
 
 	while True:
 		Log.debug( "buffer loop" )
-		while vc.frameBuf.size() < 5 and vc.captureFrame():
+		while vc.frameBuf.size() < 5 and vc.lastFlowPnts is None and vc.captureFrame():
 			lineFrame, intersect, horz = vc.findLines()
-			
-			vc.drawGrid( lineFrame )
-			vc.writeFrame( lineFrame )
+			cornerFrame = vc.trackCorners()
+			vc.drawGrid( cornerFrame )
+			vc.writeFrame( cornerFrame )
 			if intersect:
 				vc.saveFrameToBuf()
 
@@ -149,7 +158,7 @@ def mainLoop():
 		# nextTurn = None
 
 		# delay for turn and clear that buffer
-		delay( 3000 )
+		delay( 4000 )
 		vc.reset()
 
 if __name__ == '__main__':
