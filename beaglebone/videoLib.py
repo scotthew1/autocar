@@ -306,6 +306,18 @@ class VideoCapture:
 		outLine[3] = outLine[3] / length
 		return outLine
 
+	def getLineLineIntersect( self, s1, i1, s2, i2 ):
+		"""
+		Returns the intercept of two slope-intersect lines
+		With help from http://en.wikipedia.org/wiki/Line–line_intersection
+		line1: y = s1*x + i1; line2: y = s2*x + i2
+		"""
+		if s1 == s2:
+			raise Exception( "cannot find intercept between lines with the same slope." )
+		x = ( i2 - i1 ) / ( s1 - s2 )
+		y = ( s1 * ( i2 - i1 ) / ( s1 - s2 ) ) + i1
+		return x, y
+
 	def getXIntersectFromSegs( self, l1, l2 ):
 		"""
 		Finds an x intersect based on 2 line segments
@@ -322,6 +334,8 @@ class VideoCapture:
 
 	def getXIntesectFromSlopeInt( self, s1, i1, s2, i2 ):
 		"""
+		This function is now depreciated, getLineLineIntersect should be used instead.
+
 		Finds an x intersect based on 2 lines in slope-intersect form
 		With help from http://en.wikipedia.org/wiki/Line–line_intersection
 		line1: y = s1*x + i1; line2: y = s2*x + i2
@@ -480,7 +494,8 @@ class VideoCapture:
 				# for x, y in gapPnts:
 				# 	cv2.circle( lineFrame, (x, y), 4, (0,255,255) )
 			if lSlope and rSlope:
-				x = self.getXIntesectFromSlopeInt( lSlope, lYInt, rSlope, rYInt )
+				x, y = self.getLineLineIntersect( lSlope, lYInt, rSlope, rYInt )
+				x = int( x )
 				self.currentMeta.xIntersect = x
 				avgXIntersect = self.frameBuf.newAvgXIntersect( x )
 			
@@ -492,28 +507,29 @@ class VideoCapture:
 					hSlope, hYInt = ptSlopeHorz[i]
 					# self.drawHorizontalLine( y, (0,0,255), lineFrame )
 					self.drawSlopeIntLine( hSlope, hYInt, (0,0,255), lineFrame )
-					if rSlope:
-						if (i > 0):
-							rtempY = (((ptSlopeHorz[i][i-1] - ptSlopeHorz[i][1])/2) + ptSlopeHorz[i-1][1])
-							rX = (rtempY - rYInt) / rSlope
-							print rtempY
-							print rX
-							rightPnt = self.checkPointOnLine( thresh, rSlope, rYInt, y=rtempY )
-							if rightPnt == 255:
-								cv2.circle(lineFrame, (int(rX), int(rYInt)), 3, (0,0,255), 3 )
-							elif rightPnt == 0:
-								cv2.circle(lineFrame, (int(rX), int(rYInt)), 3, (0,255,0), 3 )
-					if lSlope:
-						if (i >0):
-							ltempY = (((ptSlopeHorz[i-1][1] - ptSlopeHorz[i][1])/2) + ptSlopeHorz[i-1][1])
-							lX = (ltempY - lYInt) / lSlope
-							#print ltempY
-							#print lX
-							leftPnt = self.checkPointOnLine( thresh, lSlope, lYInt, y=ltempY )
-							if leftPnt == 255:
-								cv2.circle(lineFrame, (int(lX), int(lYInt)), 3, (0,0,255), 3 )
-							elif leftPnt == 0:
-								cv2.circle(lineFrame, (int(lX), int(lYInt)), 3, (0,0,255), 3 )
+					# if rSlope:
+					# 	if (i > 0):
+					# 		rtempY = (((ptSlopeHorz[i][i-1] - ptSlopeHorz[i][1])/2) + ptSlopeHorz[i-1][1])
+					# 		rX = (rtempY - rYInt) / rSlope
+					# 		print rtempY
+					# 		print rX
+					# 		rightPnt = self.checkPointOnLine( thresh, rSlope, rYInt, y=rtempY )
+					# 		if rightPnt == 255:
+					# 			cv2.circle(lineFrame, (int(rX), int(rYInt)), 3, (0,0,255), 3 )
+					# 		elif rightPnt == 0:
+					# 			cv2.circle(lineFrame, (int(rX), int(rYInt)), 3, (0,255,0), 3 )
+					# if lSlope:
+					# 	if (i >0):
+					# 		ltempY = (((ptSlopeHorz[i-1][1] - ptSlopeHorz[i][1])/2) + ptSlopeHorz[i-1][1])
+					# 		lX = (ltempY - lYInt) / lSlope
+					# 		#print ltempY
+					# 		#print lX
+					# 		leftPnt = self.checkPointOnLine( thresh, lSlope, lYInt, y=ltempY )
+					# 		if leftPnt == 255:
+					# 			cv2.circle(lineFrame, (int(lX), int(lYInt)), 3, (0,0,255), 3 )
+					# 		elif leftPnt == 0:
+					# 			cv2.circle(lineFrame, (int(lX), int(lYInt)), 3, (0,0,255), 3 )
+					
 					#check to see if we can cross the line
 					pnt = self.checkPointOnLine( thresh, hSlope, hYInt, x=self.width/2 )
 					if pnt == 255:
@@ -687,51 +703,42 @@ class VideoCapture:
 		if self.currentFrame is None:
 			raise Exception( "No frame to process." )
 
+		# def findNearestY( pntArray, value ):
+		# 	yVals = [ pnt[0][1] for pnt in pntArray ]
+		# 	idx = ( np.abs(yVals-value) ).argmin()
+		# 	return pntArray[idx]
+
 		# these are the output variables
 		cornerFrame = self.currentFrame.copy()
 
 		gray  = cv2.cvtColor( self.currentFrame, cv.CV_RGB2GRAY )
-		ret, thresh = cv2.threshold( gray, 200, 255, cv2.THRESH_BINARY )
+		ret, thresh = cv2.threshold( gray, 180, 255, cv2.THRESH_BINARY )
+		edges = cv2.Canny( thresh, 50, 100 )
 
 		# if self.lastFlowPnts is None:
 		featureKwargs = dict( maxCorners = 10,
 						qualityLevel = 0.3,
-						minDistance = 30,
-						blockSize = 10 )
-		p0 = cv2.goodFeaturesToTrack( thresh, mask=None, **featureKwargs )
+						minDistance = 7,
+						blockSize = 7 )
+		goodOld = cv2.goodFeaturesToTrack( thresh, mask=None, **featureKwargs )
 
-		# Select good points
-		# goodNew = p1[st==1]
-		goodOld = p0
-
-		# if goodOld is not None:
-		# 	for old in goodOld:
-		# 		a, b = old.ravel()
-		# 		cv2.circle( cornerFrame, (a,b), 3, (0,255,0), 3 )
-
-		# find the points closest to the left / right lines
-		lSlope, lYInt = self.currentMeta.lSlope, self.currentMeta.lYInt
-		rSlope, rYInt = self.currentMeta.rSlope, self.currentMeta.rYInt
-
-		if lSlope and lYInt and goodOld is not None:
-			self.drawSlopeIntLine( lSlope, lYInt, (0,255,0), cornerFrame )
-			dists = [ ( self.distanceToLine( lSlope, lYInt, old[0][0], old[0][1] ), old.ravel() ) for old in goodOld ]
-			dists.sort( key=lambda tup: tup[0] )
-			if len(dists) >= 1:
-				a, b = dists[0][1]
+		if goodOld is not None:
+			for old in goodOld:
+				a, b = old.ravel()
 				cv2.circle( cornerFrame, (a,b), 3, (0,255,0), 3 )
-			if len(dists) >= 2:
-				c, d = dists[1][1]
-				cv2.circle( cornerFrame, (c,d), 3, (0,255,0), 3 )
-			# print dists
 
 		# find the points closest to the left / right lines
 		# lSlope, lYInt = self.currentMeta.lSlope, self.currentMeta.lYInt
 		# rSlope, rYInt = self.currentMeta.rSlope, self.currentMeta.rYInt
+		
+
+		# if len( pnts ) > 0:
+		# 	for a, b in pnts:
+		# 		cv2.circle( cornerFrame, (int(a), int(b)), 3, (0,255,0), 3 )
 
 		# if lSlope and lYInt and goodOld is not None:
 		# 	self.drawSlopeIntLine( lSlope, lYInt, (0,255,0), cornerFrame )
-		# 	dists = [ ( self.distanceToLine( lSlope, lYInt, old[0][0], old[0][1] ), old.ravel() ) for old in goodOld if old[0][1] < self.height/2 ]
+		# 	dists = [ ( self.distanceToLine( lSlope, lYInt, old[0][0], old[0][1] ), old.ravel() ) for old in goodOld ]
 		# 	dists.sort( key=lambda tup: tup[0] )
 		# 	if len(dists) >= 1:
 		# 		a, b = dists[0][1]
@@ -742,6 +749,16 @@ class VideoCapture:
 		# 	# print dists
 
 		return cornerFrame
+
+	def trackCornersNew( self ):
+		feature_params = dict( maxCorners = 8,
+                       qualityLevel = 0.3,
+                       minDistance = 7,
+                       blockSize = 7 )
+
+		old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
+		p0 = cv2.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
+
 
 
 if __name__ == "__main__":
@@ -804,7 +821,7 @@ if __name__ == "__main__":
 					vc.writeFrame( lineFrame )
 				if args.show:
 					vc.previewFrame( lineFrame )
-					# sleep( 0.03 )
+					sleep( 0.1 )
 			elif args.function == 'shapes':
 				direction = vc.findShapes()
 				vc.drawGrid(  )
@@ -821,7 +838,7 @@ if __name__ == "__main__":
 					vc.writeFrame( cornerFrame )
 				if args.show:
 					vc.previewFrame( cornerFrame )
-					# sleep( 0.1 )
+					sleep( 0.1 )
 			elif args.function == 'mask':	
 				maskFrame = vc.maskcolors()
 				vc.drawGrid( maskFrame )
