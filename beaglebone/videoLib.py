@@ -741,6 +741,34 @@ class VideoCapture:
 
 		return cornerFrame
 
+	def findTurns ( self ):
+
+		#Finds possible turns based off of points returned from trackCorners
+		# Returns a tuple (Left, Right, Up)
+		points = self.lastFlowPnts
+		rightCount = 0
+		leftCount = 0
+
+		if len(points) == 4:
+			possibleMoves = (1, 1, 1)
+		elif len(points) < 4:
+			for i in range( len(points) ) :
+				if points[i][0] > self.width/2:
+					rightCount = rightCount + 1
+				elif points[i][0] < self.width/2:
+					leftCount = leftCount + 1
+				if (points[i][0] > self.width/2 and points[i][1] < points[i+1][1]):
+					possibleMoves = (1, 0, 0)
+				elif (points[i][0] < self.width/2 and points[i][1] < points[i+1][1]):
+					possibleMoves = (0, 1, 0)
+				if ((points[i][0] > self.width/2) and rightCount > 2):
+					possibleMoves = (0, 1, 1)
+				elif ((points[i][0] < self.width/2 and leftCount > 2):
+					possibleMoves = (1, 1, 0)
+					
+		return possibleMoves
+
+
 
 if __name__ == "__main__":
 	import sys
