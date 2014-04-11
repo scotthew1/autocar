@@ -419,6 +419,7 @@ class VideoCapture:
 				return False
 			return frame[y][x] | frame[y][x+2] | frame[y][x-2]
 		else:
+			Log.error( "what's going on here??" )
 			return False
 
 	def findLines( self ):
@@ -492,34 +493,35 @@ class VideoCapture:
 					# self.drawHorizontalLine( y, (0,0,255), lineFrame )
 					self.drawSlopeIntLine( hSlope, hYInt, (0,0,255), lineFrame )
 					if rSlope:
-						rtempY = (((ptSlopeHorz[i][1] - ptSlopeHorz[i+1][1])/2) + ptSlopeHorz[i][1])
-						rX = (rtempY - rYint) / rSlope
-						rightPnt = self.checkPointOnLine( thresh, rSlope, rYint, y=rtempY )
-						if rightPnt == False:
-							pass
-						elif rightPnt == 255:
-							cv2.circle(lineFrame, (rX, int(rYint)), 3, (0,0,255), 3 )
-						elif rightPnt == 0:
-							cv2.circle(lineFrame, (rX, int(rYint)), 3, (0,255,0), 3 )
+						if (i > 0):
+							rtempY = (((ptSlopeHorz[i][i-1] - ptSlopeHorz[i][1])/2) + ptSlopeHorz[i-1][1])
+							rX = (rtempY - rYInt) / rSlope
+							print rtempY
+							print rX
+							rightPnt = self.checkPointOnLine( thresh, rSlope, rYInt, y=rtempY )
+							if rightPnt == 255:
+								cv2.circle(lineFrame, (int(rX), int(rYInt)), 3, (0,0,255), 3 )
+							elif rightPnt == 0:
+								cv2.circle(lineFrame, (int(rX), int(rYInt)), 3, (0,255,0), 3 )
 					if lSlope:
-						ltempY = (((ptSlopeHorz[i][1] - ptSlopeHorz[i+1][1])/2) + ptSlopeHorz[i][1])
-						lX = (ltempY - lYint) / lSlope
-						leftPnt = self.checkPointOnLine( thresh, lSlope, lYint, y=ltempY )
-						if leftPnt == False:
-							pass
-						elif leftPnt == 255:
-							cv2.circle(lineFrame, (lX, int(lYint)), 3, (0,0,255), 3 )
-						elif leftPnt == 0:
-							cv2.circle(lineFrame, (lX, int(lYint)), 3, (0,0,255), 3 )
-					# check to see if we can cross the line
+						if (i >0):
+							ltempY = (((ptSlopeHorz[i-1][1] - ptSlopeHorz[i][1])/2) + ptSlopeHorz[i-1][1])
+							lX = (ltempY - lYInt) / lSlope
+							#print ltempY
+							#print lX
+							leftPnt = self.checkPointOnLine( thresh, lSlope, lYInt, y=ltempY )
+							if leftPnt == 255:
+								cv2.circle(lineFrame, (int(lX), int(lYInt)), 3, (0,0,255), 3 )
+							elif leftPnt == 0:
+								cv2.circle(lineFrame, (int(lX), int(lYInt)), 3, (0,0,255), 3 )
+					#check to see if we can cross the line
 					pnt = self.checkPointOnLine( thresh, hSlope, hYInt, x=self.width/2 )
-					if pnt == False:
-						# an error occurred
-						pass
-					elif pnt == 255:
+					if pnt == 255:
 						cv2.circle( lineFrame, (self.width/2, int(hYInt)), 3, (0,0,255), 3 )
 					elif pnt == 0:
 						cv2.circle( lineFrame, (self.width/2, int(hYInt)), 3, (0,255,0), 3 )
+					else:
+						Log.degug( "rogue pnt: %d" % pnt )
 					outHorz.append( ( hYInt, pnt ) )
 
 
