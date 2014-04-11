@@ -27,11 +27,11 @@ def forwardMovement():
 		# next = vc.findShapes()
 		cornerFrame = vc.trackCorners()
 		
-		vc.drawGrid( cornerFrame )
-		vc.writeFrame( cornerFrame )
+		vc.drawGrid( lineFrame )
+		vc.writeFrame( lineFrame )
 		vc.saveFrameToBuf()
 
-		frame = cornerFrame
+		frame = lineFrame
 
 		nudgeMotor = None
 		nudgeTime  = None
@@ -94,8 +94,8 @@ def mainLoop():
 		while vc.frameBuf.size() < 5 and vc.lastFlowPnts is None and vc.captureFrame():
 			lineFrame, intersect, horz = vc.findLines()
 			cornerFrame = vc.trackCorners()
-			vc.drawGrid( cornerFrame )
-			vc.writeFrame( cornerFrame )
+			vc.drawGrid( lineFrame )
+			vc.writeFrame( lineFrame )
 			if intersect:
 				vc.saveFrameToBuf()
 
@@ -106,7 +106,18 @@ def mainLoop():
 			Log.warning( "could not find directions, trying again.." )
 			vc.reset()
 			continue
+		directions.append( 'Down' )
 		nextTurn = random.choice( directions )
+
+		# next = vc.findShapes()
+		# if next == 'Destination':
+		# 	nextTurn = next
+		# elif next in directions:
+		# 	nextTurn = next
+		# else:
+		# 	nextTurn = random.choice( directions )
+
+		Log.info( "Nest turn is: " + nextTurn )
 
 		Log.debug( "sending start" )
 		cl.flush()
@@ -233,8 +244,8 @@ if __name__ == '__main__':
 	vc = VideoCapture( outfile=args.outfile, fourcc=args.fourcc )
 	cl.setup()
 
-	# print "starting in 10 seconds..."
-	# delay( 10000 )
+	print "starting in 10 seconds..."
+	delay( 10000 )
 
 	# spend some frames letting the camera warm up
 	for i in range(10):
