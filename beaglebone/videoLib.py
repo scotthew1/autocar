@@ -88,9 +88,10 @@ class VideoCapture:
 			self.capture = cv2.VideoCapture(0)
 			self.capture.set(cv.CV_CAP_PROP_FRAME_WIDTH, 340)
 			self.capture.set(cv.CV_CAP_PROP_FRAME_HEIGHT, 240)
+			# self.capture.set(cv.CV_CAP_PROP_EXPOSURE, 80)
+			# self.capture.set(cv.CV_CAP_PROP_CONTRAST, 200)
 			# self.capture.set(cv.CV_CAP_PROP_FPS, 15)
 			# self.capture.set(cv.CV_CAP_PROP_BRIGHTNESS, .5)
-			# self.capture.set(cv.CV_CAP_PROP_EXPOSURE,-10)
 			if not self.capture.isOpened():
 				raise Exception( "Could not connect to camera." )
 
@@ -291,6 +292,8 @@ class VideoCapture:
 				bins[yAvg].append( l )
 		out = []
 		for key in bins:
+			if len( bins[key] ) < 2:
+				continue
 			line = self.getBestFit( bins[key] )
 			out.append( line )
 		return out
@@ -455,7 +458,7 @@ class VideoCapture:
 		gray  = cv2.cvtColor( self.currentFrame, cv.CV_RGB2GRAY )
 		ret, thresh = cv2.threshold( gray, 180, 255, cv2.THRESH_BINARY )
 		edges = cv2.Canny( thresh, 50, 100 )
-		lines = cv2.HoughLinesP( edges, 1, np.pi/180, 30, maxLineGap=10 )
+		lines = cv2.HoughLinesP( edges, 5, np.pi/90, 50, maxLineGap=10 )
 		
 		# loop through the lines and separate them 
 		if lines is not None:
@@ -723,15 +726,15 @@ class VideoCapture:
 				return cornerFrame
 
 			Log.info( "finding new tracking points" )
-			featureKwargs = dict( maxCorners = 16,
-							qualityLevel = 0.10,
+			featureKwargs = dict( maxCorners = 20,
+							qualityLevel = 0.01,
 							minDistance = 40,
-							blockSize = 7 )
+							blockSize = 11 )
 			good = cv2.goodFeaturesToTrack( gray, mask=None, **featureKwargs )
 			good = [ pnt for pnt in good if pnt[0][1] < self.height/2 ]
 			filtered = []
 			for pnt in good:
-				if pnt[0][1] > self.height/2 or pnt[0][1] < self.height/8:
+				if pnt[0][1] > self.height/2 or pnt[0][1] < self.height/8 + 10:
 					continue
 				lDist = abs( self.distanceToLine( lSlope, lYInt, pnt[0][0], pnt[0][1] ) )
 				rDist = abs( self.distanceToLine( rSlope, rYInt, pnt[0][0], pnt[0][1] ) )
@@ -749,6 +752,7 @@ class VideoCapture:
 						cv2.circle( cornerFrame, (a,b), 3, (0,0,255), 3 )
 					else:
 						cv2.circle( cornerFrame, (a,b), 3, (0,255,0), 3 )
+			if good is not None and len(good) > 1:
 				self.lastFlowPnts  = np.array( good ) 
 				self.lastFlowFrame = gray
 		else:
@@ -818,6 +822,11 @@ if __name__ == "__main__":
 
 	vc = VideoCapture( infile=args.infile, outfile=args.outfile, fourcc=args.fourcc, preview=args.show )
 
+	# spend some frames letting the camera warm up
+	for i in range(10):
+		vc.captureFrame()
+
+	startFrame = vc.frameCount
 	t0 = time()
 	try:
 		while vc.captureFrame():
@@ -844,7 +853,8 @@ if __name__ == "__main__":
 					vc.previewFrame(  )
 					# sleep( 0.03 )
 			elif args.function == 'corners':
-				vc.findLines()
+				if vc.lastFlowPnts is None:
+					vc.findLines()
 				cornerFrame = vc.trackCorners()
 				vc.drawGrid( cornerFrame )
 				if args.outfile:
@@ -868,8 +878,8 @@ if __name__ == "__main__":
 	t1 = time()
 	tt = t1 - t0
 	
-	Log.info( "frames: %d" % vc.frameCount )
+	Log.info( "frames: %d" % (vc.frameCount-startFrame) )
 	Log.info( "time: %f" % tt )
-	Log.info( "fps: %f" % (vc.frameCount/tt) )
+	Log.info( "fps: %f" % ((vc.frameCount-startFrame)/tt) )
 
 	vc.cleanUp()
