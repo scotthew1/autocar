@@ -10,7 +10,7 @@ modprobe uvcvideo
 v4l2-ctl -d /dev/video0 -c exposure_auto_priority=1
 v4l2-ctl -d /dev/video0 -c exposure_auto=1
 v4l2-ctl -d /dev/video0 -c exposure_absolute=100
-v4l2-ctl -d /dev/video0 -c contrast=60
+v4l2-ctl -d /dev/video0 -c contrast=80
 v4l2-ctl --list-ctrls
 
 # get internet working
