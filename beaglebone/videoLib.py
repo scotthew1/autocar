@@ -715,7 +715,7 @@ class VideoCapture:
  
 		gray  = cv2.cvtColor( self.currentFrame, cv.CV_RGB2GRAY )
 		# blur = cv2.medianBlur( gray, 15 )
-		# ret, thresh = cv2.threshold( blur, 180, 255, cv2.THRESH_BINARY )
+		ret, thresh = cv2.threshold( gray, 180, 255, cv2.THRESH_BINARY )
 		# edges = cv2.Canny( gray, 50, 100 )
 
 		if self.lastFlowPnts is None:
@@ -726,11 +726,18 @@ class VideoCapture:
 				return cornerFrame
 
 			Log.info( "finding new tracking points" )
+			
+			mask = np.zeros( gray.shape[:2], np.uint8 )
+			mx1 = self.width/8
+			mx2 = 7*self.width/8
+			my1 = self.height/8
+			my2 = self.height/2
 			featureKwargs = dict( maxCorners = 20,
 							qualityLevel = 0.01,
 							minDistance = 40,
-							blockSize = 11 )
-			good = cv2.goodFeaturesToTrack( gray, mask=None, **featureKwargs )
+							blockSize = 20 )
+							# mask = mask[mx1:mx2, my1:my2] )
+			good = cv2.goodFeaturesToTrack( thresh, **featureKwargs )
 			good = [ pnt for pnt in good if pnt[0][1] < self.height/2 ]
 			filtered = []
 			for pnt in good:
