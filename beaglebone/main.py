@@ -19,6 +19,9 @@ def forwardMovement():
 	intersect = None
 	while vc.captureFrame():
 		lineFrame, intersect, horz = vc.findLines()
+		if vc.checkReset():
+			Log.info( "resetting...." )
+			return False
 		# vc.frameBuf.printHorzDiff()
 		# if nextTurn == None:
 		# next = vc.findShapes()
@@ -37,17 +40,17 @@ def forwardMovement():
 			# Log.debug( 3*vc.height/4 )
 			# Log.debug( pnt )
 			
-			if len(pnts) == 2 and abs(pnts[0][0][1] - pnts[1][0][1]) < 8:
+			if len(pnts) == 2 and abs(pnts[0][0][1] - pnts[1][0][1]) < 10:
 				# condition where there are only 2 dots on the same horz
 				# we don't wanna stop on the farthest tracked point
 				pass
 			elif pnts[0][0][1] > (3*vc.height/4)-25:
 				Log.debug( "can't continue, gotta stop - corner" )
-				return
+				return True
 		for line in horz:
 			if line[0] > vc.height-80 and line[1] == 255:
 				Log.debug( "can't continue, gotta stop - line" )
-				return
+				return True
 		if intersect and vc.frameCount >= (lastNudge+10):
 			if intersect > (vc.width/2 + 60):
 				nudgeMotor = cl.M2
@@ -115,7 +118,18 @@ def mainLoop():
 			Log.info( "start received!" )
 
 		# go forward til we have to stop
-		forwardMovement()
+		if not forwardMovement():
+			# stop and reset
+			Log.debug( "sending stop" )
+			cl.flush()
+			cl.stop()
+			if not cl.readAndCheck():
+				Log.warning( "stop not received D=" )
+			else:
+				Log.info( "stop received!" )
+			delay( 100 )
+			vc.reset()
+			continue
 
 		Log.debug( "sending stop" )
 		cl.flush()
