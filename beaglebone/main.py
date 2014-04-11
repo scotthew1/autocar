@@ -32,11 +32,15 @@ def forwardMovement():
 		nudgeMotor = None
 		nudgeTime  = None
 		if vc.lastFlowPnts is not None:
-			pnt = vc.lastFlowPnts[0]
+			pnts = vc.lastFlowPnts
 			# Log.debug( 3*vc.height/4 )
 			# Log.debug( pnt )
-
-			if pnt[0][1] > 3*vc.height/4:
+			
+			if len(pnts) == 2 and abs(pnts[0][0][1] - pnts[1][0][1]) < 5:
+				# condition where there are only 2 dots on the same horz
+				# we don't wanna stop on the farthest tracked point
+				pass
+			elif pnts[0][0][1] > (3*vc.height/4)-25:
 				Log.debug( "can't continue, gotta stop - corner" )
 				return
 		for line in horz:
@@ -159,6 +163,13 @@ def mainLoop():
 
 		# delay for turn and clear that buffer
 		delay( 4000 )
+
+		# burn some frames
+		Log.info( "burning frames.." )
+		for i in range(10):
+			vc.captureFrame()
+
+		Log.info( "resetting video capture" )
 		vc.reset()
 
 if __name__ == '__main__':

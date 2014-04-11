@@ -452,11 +452,11 @@ class VideoCapture:
 		# these are the output variables
 		lineFrame = self.currentFrame.copy()
 		avgXIntersect = None
-		outHorz = []
+		ptSlopeHorz, outHorz = [], []
 
 		# opencv time, do the filtering and find lines
 		gray  = cv2.cvtColor( self.currentFrame, cv.CV_RGB2GRAY )
-		ret, thresh = cv2.threshold( gray, 180, 255, cv2.THRESH_BINARY )
+		ret, thresh = cv2.threshold( gray, 210, 255, cv2.THRESH_BINARY )
 		edges = cv2.Canny( thresh, 50, 100 )
 		lines = cv2.HoughLinesP( edges, 5, np.pi/90, 50, maxLineGap=10 )
 		
@@ -560,7 +560,7 @@ class VideoCapture:
 			self.currentMeta.lYInt  = lYInt
 			self.currentMeta.rSlope = rSlope
 			self.currentMeta.rYInt  = rYInt
-			self.currentMeta.horizLines = outHorz
+			self.currentMeta.horizLines = ptSlopeHorz
 		else:
 			Log.info( "no lines detected" )
 
@@ -579,13 +579,13 @@ class VideoCapture:
 		hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
 		#define range of GREEN 
 		# array( HUE, SATURATION, VALUE/BRIGHTNESS)
-		lower_green = np.array([45,85,65])
+		lower_green = np.array([30,30,55])
 		upper_green = np.array([70,255,255])
 		#define range of RED - Kyle
 		lower_red = np.array([170,50,50])
 		upper_red = np.array([10,255,255])
 		#define range of BLUE
-		lower_blue = np.array([100,40,40])
+		lower_blue = np.array([100,40,150])
 		upper_blue = np.array([130,255,255])
 		#Using greenmask to find everything within a range of the given values
 		#and returning this to help find signs on the road
@@ -661,7 +661,7 @@ class VideoCapture:
 			# 	x,y = i.ravel()
 			# 	cv2.circle(gray,(x,y),3,255,-1)
 
-		return direction
+		return crop
 
 	# Function to mask out the signs on the road this is done to make sure the we don't mess up the line detection.
 	def maskcolors( self ):
@@ -698,7 +698,7 @@ class VideoCapture:
 			h += 10
 			cv2.rectangle(img,(x,y),(x+w,y+h),(0,0,0),-1)
 
-		return img
+		return greenmask
 
 	def trackCorners( self ):
 		"""
@@ -721,9 +721,15 @@ class VideoCapture:
 		if self.lastFlowPnts is None:
 			lSlope, lYInt = self.currentMeta.lSlope, self.currentMeta.lYInt
 			rSlope, rYInt = self.currentMeta.rSlope, self.currentMeta.rYInt
+			horz  = self.currentMeta.horizLines
 
-			if not lSlope or not rSlope:
+			if not lSlope or not rSlope or horz is None or len(horz) <= 1:
 				return cornerFrame
+
+			# Log.debug( horz )
+			# for hSlope, hYInt in horz:
+			hSlope, hYInt = horz[-2]
+			# self.drawSlopeIntLine( hSlope, hYInt, (0,0,255), cornerFrame )
 
 			Log.info( "finding new tracking points" )
 			
@@ -733,9 +739,9 @@ class VideoCapture:
 			my1 = self.height/8
 			my2 = self.height/2
 			featureKwargs = dict( maxCorners = 20,
-							qualityLevel = 0.01,
-							minDistance = 40,
-							blockSize = 20 )
+							qualityLevel = 0.1,
+							minDistance = 20,
+							blockSize = 7 )
 							# mask = mask[mx1:mx2, my1:my2] )
 			good = cv2.goodFeaturesToTrack( thresh, **featureKwargs )
 			good = [ pnt for pnt in good if pnt[0][1] < self.height/2 ]
@@ -745,10 +751,13 @@ class VideoCapture:
 					continue
 				lDist = abs( self.distanceToLine( lSlope, lYInt, pnt[0][0], pnt[0][1] ) )
 				rDist = abs( self.distanceToLine( rSlope, rYInt, pnt[0][0], pnt[0][1] ) )
-				Log.debug( "lDist: %0.3f, rDist %0.3f" % (lDist, rDist) )
-				if lDist < 6:
+				hDist = abs( self.distanceToLine( hSlope, hYInt, pnt[0][0], pnt[0][1] ) )
+				# Log.debug( "lDist: %0.3f, rDist %0.3f" % (lDist, rDist) )
+				if lDist < 10:
 					filtered.append(pnt)
-				elif rDist < 6:
+				elif rDist < 10:
+					filtered.append(pnt)
+				elif hDist < 10 and self.width/4 < pnt[0][0] < 3*self.width/4:
 					filtered.append(pnt)
 			good = sorted( filtered, key=lambda pnt: pnt[0][1] )
 
@@ -781,31 +790,31 @@ class VideoCapture:
 			self.lastFlowFrame = gray
 		return cornerFrame
 	
-	def findTurns ( self ):
-		#Finds possible turns based off of points returned from trackCorners
-		# Returns a tuple (Left, Right, Up)
-		points = self.lastFlowPnts
-		rightCount = 0
-		leftCount = 0
+	# def findTurns ( self ):
+	# 	#Finds possible turns based off of points returned from trackCorners
+	# 	# Returns a tuple (Left, Right, Up)
+	# 	points = self.lastFlowPnts
+	# 	rightCount = 0
+	# 	leftCount = 0
 
-		if len(points) == 4:
-			possibleMoves = (1, 1, 1)
-		elif len(points) < 4:
-			for i in range( len(points) ) :
-				if points[i][0] > self.width/2:
-					rightCount = rightCount + 1
-				elif points[i][0] < self.width/2:
-					leftCount = leftCount + 1
-				if (points[i][0] > self.width/2 and points[i][1] < points[i+1][1]):
-					possibleMoves = (1, 0, 0)
-				elif (points[i][0] < self.width/2 and points[i][1] < points[i+1][1]):
-					possibleMoves = (0, 1, 0)
-				if ((points[i][0] > self.width/2) and rightCount > 2):
-					possibleMoves = (0, 1, 1)
-				elif ((points[i][0] < self.width/2 and leftCount > 2):
-					possibleMoves = (1, 1, 0)
+	# 	if len(points) == 4:
+	# 		possibleMoves = (1, 1, 1)
+	# 	elif len(points) < 4:
+	# 		for i in range( len(points) ) :
+	# 			if points[i][0] > self.width/2:
+	# 				rightCount = rightCount + 1
+	# 			elif points[i][0] < self.width/2:
+	# 				leftCount = leftCount + 1
+	# 			if (points[i][0] > self.width/2 and points[i][1] < points[i+1][1]):
+	# 				possibleMoves = (1, 0, 0)
+	# 			elif (points[i][0] < self.width/2 and points[i][1] < points[i+1][1]):
+	# 				possibleMoves = (0, 1, 0)
+	# 			if ((points[i][0] > self.width/2) and rightCount > 2):
+	# 				possibleMoves = (0, 1, 1)
+	# 			elif ((points[i][0] < self.width/2 and leftCount > 2):
+	# 				possibleMoves = (1, 1, 0)
 					
-		return possibleMoves
+	# 	return possibleMoves
 
 
 
@@ -877,11 +886,11 @@ if __name__ == "__main__":
 					sleep( 0.1 )
 			elif args.function == 'shapes':
 				direction = vc.findShapes()
-				vc.drawGrid(  )
+				vc.drawGrid( direction )
 				if args.outfile:
-					vc.writeFrame(  )
+					vc.writeFrame( direction )
 				if args.show:
-					vc.previewFrame(  )
+					vc.previewFrame( direction )
 					# sleep( 0.03 )
 			elif args.function == 'corners':
 				if vc.lastFlowPnts is None:
