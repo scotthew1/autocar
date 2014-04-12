@@ -749,7 +749,6 @@ class VideoCapture:
 
 		return cornerFrame
 
-<<<<<<< HEAD
 	def findTurns ( self ):
 
 		#Finds possible turns based off of points returned from trackCorners
@@ -776,7 +775,7 @@ class VideoCapture:
 					possibleMoves = (1, 1, 0)
 					
 		return possibleMoves
-=======
+
 	def trackCornersNew( self ):
 		feature_params = dict( maxCorners = 8,
                        qualityLevel = 0.3,
