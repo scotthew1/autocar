@@ -14,16 +14,19 @@ Even without the full robot setup, you can play with our image processing functi
     ```
     sudo apt-get install python-opencv python-numpy
     ```
+
 2. Clone this repo
     ```
     cd /install/path
     git clone https://github.com/scotthew1/autocar.git
     cd autocar/
     ```
+
 3. Run an image processing function
     ```
     beaglebone/videoLib.py -s -f lines
     ```
+
     This will show a visualtion for findLines() which was used to keep Autocar
     in the lines on the road. There are other functions you can run. 
     `beaglebone/videoLib.py --help` will list available functions.
@@ -44,7 +47,7 @@ List of Components
 * [BeagleBone Black]
 * [BeagleBone battery cape]
 * [Arduino Uno]
-* Arduino Matrix cape (custom made)
+* Arduino Matrix shield (prototype)
 * [EOPD Sensor] (distance sensor, prototype version)
 * [Logic Level Converter]
 * RGB LED

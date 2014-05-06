@@ -35,7 +35,7 @@ The Arduino and the Matrix controller were powered by the 10.2V battery pack inc
 LED
 ---
 
-An RGB LED was connected to the BeagleBone to provide status indicators when Autocar was running autonomously. The LED was connected with pull-up resistors to the beaglebone as follows (numbers indicate pins on the BeagleBone)
+An RGB LED was connected to the BeagleBone to provide status indicators when Autocar was running autonomously. The LED was connected with pull-up resistors to the beaglebone as follows (numbers indicate pins on the BeagleBone):
 
 ![LED diagram]
 
