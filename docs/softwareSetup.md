@@ -8,6 +8,8 @@ Arduino
 * Arduino IDE
 * MatrixController library folder
 
+---------------------------------------
+
 1. Before launching the Arduino IDE, move the MatrixController folder into the the Arduino folder on your computer. On my mac it's `~/Documents/Arduino/`
 
 2. Launch the Arduino IDE and open `autocar/arduino/autocar_slave/autocar_slave.ino`
@@ -22,6 +24,8 @@ BeagleBone Black
 **Prerequisites:**
 * Ubuntu (or Ubuntu VM) on your computer to provide internet to the BeagleBone
 * If you're not running Ubuntu on your computer, you might need to [install drivers]
+
+---------------------------------------
 
 1. For this project, we were running Ubuntu 13.04 on the BeagleBone installed on a 16GB micro SD. There is a chance this would work on the default Angstrom build, but all further steps will assume you have Ubuntu installed on your BeagleBone. To install Ubuntu on the BeagleBone, follow this [elinux tutorial] for Saucy 13.04.
 
@@ -75,6 +79,8 @@ BeagleBone Black
     
     Running the above function should output 200 frames of sample video to your home directory processed using the findLines() function.
 
+---------------------------------------
+
 **Caveates:**
 * In order to power the webcam, the BeagleBone must be receiving 5V power. It will not receive 5V from your computer via USB. You must use a 5V AC power adapter or the BeagleBone battery cape (or provide 5V to the BeagleBone's 5V pin but be careful)
 * When videoLib.py connects to the webcam, it initially spits out a bunch of errors. As long as it doesn't crash, it should run fine. Sometimes it does randomly crash, just try running it again and it should work.
@@ -87,6 +93,8 @@ Communication
 * The BeagleBone and the Arduino must be connected the the logic level converted according to the [Hardware Setup].
 * The Arduino should be programmed and running as described above.
 * You should be sharing internet to the BeagleBone as described above.
+
+---------------------------------------
 
 1. Follow the tutorial for [installing PyBBIO] on your BeagleBone.
 
